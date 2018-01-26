@@ -1,5 +1,5 @@
 use std::ops::{Range, RangeTo, RangeFrom, RangeFull, Sub, Neg};
-use std::cmp::{PartialOrd, Ordering};
+use std::cmp::{PartialOrd, Ordering, Ord};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BoundType {
@@ -9,7 +9,7 @@ pub enum BoundType {
 
 use self::BoundType::*;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Bound<T> {
 	pub bound_type: BoundType,
 	pub value: T,
@@ -26,6 +26,51 @@ impl<T> Bound<T> {
 		Bound {
 			bound_type: BoundType::Exclusive,
 			value,
+		}
+	}
+}
+
+impl<T: Ord> Bound<T> {
+	pub fn is_max(&self, other: &Self) -> bool {
+		match self.value.cmp(&other.value) {
+			Ordering::Greater => true,
+			Ordering::Less => false,
+			Ordering::Equal => {
+				if self.bound_type == BoundType::Inclusive {
+					true
+				} else {
+					false
+				}
+			}
+		}
+	}
+
+	pub fn max(self, other: Self) -> Self {
+		if self.is_max(&other) {
+			self
+		} else {
+			other
+		}
+	}
+	pub fn is_min(&self, other: &Self) -> bool {
+		match self.value.cmp(&other.value) {
+			Ordering::Less => true,
+			Ordering::Greater => false,
+			Ordering::Equal => {
+				if self.bound_type == BoundType::Inclusive {
+					true
+				} else {
+					false
+				}
+			}
+		}
+	}
+
+	pub fn min(self, other: Self) -> Self {
+		if self.is_min(&other) {
+			self
+		} else {
+			other
 		}
 	}
 }
@@ -49,7 +94,7 @@ impl Neg for Comparison {
 	}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Bounds<T> {
 	Exact(T),
 	Range(Option<Bound<T>>, Option<Bound<T>>),
@@ -102,6 +147,67 @@ impl<T: Sub<Output=T> + Clone> Bounds<T> {
 
 
 impl<T: Eq + Ord> Bounds<T> {
+	pub fn merge(self, other: Self) -> Self {
+		match (self, other) {
+			(Bounds::Exact(a), Bounds::Exact(x)) => {
+				match a.cmp(&x) {
+					Ordering::Equal => Bounds::Exact(a),
+					Ordering::Less => Bounds::Range(Some(Bound::inclusive(a)), Some(Bound::inclusive(x))),
+					Ordering::Greater => Bounds::Range(Some(Bound::inclusive(x)), Some(Bound::inclusive(a)))
+				}
+			}
+			(Bounds::Range(a, b), Bounds::Range(x, y)) => {
+				debug_assert_bounds_order(&a, &b);
+				debug_assert_bounds_order(&x, &y);
+				let high = match (b, y) {
+					(None, None) => None,
+					(Some(val), None) | (None, Some(val)) => Some(val),
+					(Some(b), Some(y)) => {
+						Some(b.max(y))
+					}
+				};
+				let low = match (a, x) {
+					(None, None) => None,
+					(Some(val), None) | (None, Some(val)) => Some(val),
+					(Some(a), Some(x)) => {
+						Some(a.min(x))
+					}
+				};
+				Bounds::Range(low, high)
+			}
+			(a, b @ Bounds::Exact(_)) => b.merge(a),
+			(Bounds::Exact(a), Bounds::Range(x, y)) => {
+				let a_bound = Bound::inclusive(a);
+				match (x, y) {
+					(None, None) => Bounds::Exact(a_bound.value),
+					(Some(x), Some(y)) => {
+						if a_bound.is_min(&x) {
+							Bounds::Range(Some(a_bound), Some(y))
+						} else if a_bound.is_max(&y) {
+							Bounds::Range(Some(x), Some(a_bound))
+						} else {
+							Bounds::Range(Some(x), Some(y))
+						}
+					}
+					(Some(x), None) => {
+						if a_bound.is_min(&x) {
+							Bounds::Range(Some(a_bound), None)
+						} else {
+							Bounds::Range(Some(x), None)
+						}
+					}
+					(None, Some(y)) => {
+						if a_bound.is_max(&y) {
+							Bounds::Range(None, Some(a_bound))
+						} else {
+							Bounds::Range(None, Some(y))
+						}
+					}
+				}
+			}
+		}
+	}
+
 	pub fn range(start: Bound<T>, end: Bound<T>) -> Self {
 		Bounds::Range(Some(start), Some(end))
 	}
@@ -252,4 +358,21 @@ fn test_compare() {
 	assert_eq!(Bounds::from(0..2).compare_to(&Bounds::from(2..3)), Comparison::Less);
 	assert_eq!(Bounds::Exact(2).compare_to(&Bounds::from(3..4)), Comparison::Less);
 	assert_eq!(Bounds::from(3..4).compare_to(&Bounds::Exact(2)), Comparison::Greater);
+}
+
+#[test]
+fn test_merge() {
+	assert_eq!(Bounds::from(1..3).merge(Bounds::Exact(2)), Bounds::from(1..3));
+	assert_eq!(Bounds::from(1..3).merge(Bounds::Exact(1)), Bounds::from(1..3));
+	assert_eq!(Bounds::from(1..3).merge(Bounds::Exact(3)),
+	           Bounds::Range(Some(Bound::inclusive(1)), Some(Bound::inclusive(3))));
+	assert_eq!(Bounds::from(1..3).merge(Bounds::Exact(0)),
+	           Bounds::Range(Some(Bound::inclusive(0)), Some(Bound::exclusive(3))));
+	assert_eq!(Bounds::from(1..3).merge(Bounds::Exact(4)),
+	           Bounds::Range(Some(Bound::inclusive(1)), Some(Bound::inclusive(4))));
+
+	assert_eq!(Bounds::from(1..4).merge(Bounds::from(2..3)), Bounds::from(1..4));
+	assert_eq!(Bounds::from(1..4).merge(Bounds::from(0..2)), Bounds::from(0..4));
+	assert_eq!(Bounds::from(1..4).merge(Bounds::from(3..5)), Bounds::from(1..5));
+	assert_eq!(Bounds::from(1..4).merge(Bounds::from(0..5)), Bounds::from(0..5));
 }
