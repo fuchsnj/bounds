@@ -1,5 +1,5 @@
-use std::ops::{Range, RangeTo, RangeFrom, RangeFull, Sub};
-use std::cmp::PartialEq;
+use std::ops::{Range, RangeTo, RangeFrom, RangeFull, Sub, Neg};
+use std::cmp::{PartialOrd, Ordering};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BoundType {
@@ -26,6 +26,25 @@ impl<T> Bound<T> {
 		Bound {
 			bound_type: BoundType::Exclusive,
 			value,
+		}
+	}
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum Comparison {
+	Less,
+	Greater,
+	Intersects,
+}
+
+impl Neg for Comparison {
+	type Output = Comparison;
+
+	fn neg(self) -> Self::Output {
+		match self {
+			Comparison::Less => Comparison::Greater,
+			Comparison::Intersects => Comparison::Intersects,
+			Comparison::Greater => Comparison::Less
 		}
 	}
 }
@@ -81,48 +100,53 @@ impl<T: Sub<Output=T> + Clone> Bounds<T> {
 	}
 }
 
-impl<T: PartialEq + PartialOrd> Bounds<T> {
+
+impl<T: Eq + Ord> Bounds<T> {
 	pub fn range(start: Bound<T>, end: Bound<T>) -> Self {
 		Bounds::Range(Some(start), Some(end))
 	}
 	pub fn intersects(&self, other: &Bounds<T>) -> bool {
+		self.compare_to(other) == Comparison::Intersects
+	}
+
+	pub fn compare_to(&self, other: &Bounds<T>) -> Comparison {
 		match (self, other) {
 			(&Bounds::Exact(ref a), &Bounds::Exact(ref x)) => {
-				a == x
+				match a.cmp(&x) {
+					Ordering::Equal => Comparison::Intersects,
+					Ordering::Less => Comparison::Less,
+					Ordering::Greater => Comparison::Greater
+				}
 			}
 			(&Bounds::Range(ref a, ref b), &Bounds::Range(ref x, ref y)) => {
 				debug_assert_bounds_order(a, b);
 				debug_assert_bounds_order(x, y);
-				if let
-				(&Some(ref a), &Some(ref y)) =
-				(a, y) {
+				if let (&Some(ref a), &Some(ref y)) = (a, y) {
 					if a.bound_type == Inclusive && y.bound_type == Inclusive {
-						if a.value > y.value { return false; }
+						if a.value > y.value { return Comparison::Greater; }
 					} else {
-						if a.value >= y.value { return false; }
+						if a.value >= y.value { return Comparison::Greater; }
 					}
 				}
-				if let
-				(&Some(ref b), &Some(ref x)) =
-				(b, x) {
+				if let (&Some(ref b), &Some(ref x)) = (b, x) {
 					if b.bound_type == Inclusive && x.bound_type == Inclusive {
-						if b.value < x.value { return false; }
+						if b.value < x.value { return Comparison::Less; }
 					} else {
-						if b.value <= x.value { return false; }
+						if b.value <= x.value { return Comparison::Less; }
 					}
 				}
-				true
+				Comparison::Intersects
 			}
-			(a, b @ &Bounds::Exact(_)) => b.intersects(a),
+			(a, b @ &Bounds::Exact(_)) => -b.compare_to(a),
 			(&Bounds::Exact(ref a), &Bounds::Range(ref x, ref y)) => {
 				debug_assert_bounds_order(x, y);
 				if let &Some(ref x) = x {
 					match x.bound_type {
 						BoundType::Inclusive => {
-							if a < &x.value { return false; }
+							if a < &x.value { return Comparison::Less; }
 						}
 						BoundType::Exclusive => {
-							if a <= &x.value { return false; }
+							if a <= &x.value { return Comparison::Less; }
 						}
 					}
 				}
@@ -130,15 +154,15 @@ impl<T: PartialEq + PartialOrd> Bounds<T> {
 				if let &Some(ref y) = y {
 					match y.bound_type {
 						BoundType::Inclusive => {
-							if a > &y.value { return false; }
+							if a > &y.value { return Comparison::Greater; }
 						}
 						BoundType::Exclusive => {
-							if a >= &y.value { return false; }
+							if a >= &y.value { return Comparison::Greater; }
 						}
 					}
 				}
 
-				return true;
+				return Comparison::Intersects;
 			}
 		}
 	}
@@ -219,4 +243,13 @@ fn test_size() {
 	assert_eq!(Bounds::from(1..).size(), None);
 	assert_eq!(Bounds::from(..1).size(), None);
 	assert_eq!(Bounds::<u32>::from(..).size(), None);
+}
+
+#[test]
+fn test_compare() {
+	assert_eq!(Bounds::from(1..3).compare_to(&Bounds::from(2..4)), Comparison::Intersects);
+	assert_eq!(Bounds::from(2..3).compare_to(&Bounds::from(0..2)), Comparison::Greater);
+	assert_eq!(Bounds::from(0..2).compare_to(&Bounds::from(2..3)), Comparison::Less);
+	assert_eq!(Bounds::Exact(2).compare_to(&Bounds::from(3..4)), Comparison::Less);
+	assert_eq!(Bounds::from(3..4).compare_to(&Bounds::Exact(2)), Comparison::Greater);
 }
