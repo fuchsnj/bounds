@@ -1,6 +1,6 @@
 [package]
 name = "bounds"
-version = "0.1.1"
+version = "0.2"
 authors = ["Nathan Fox <fuchsnj@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/fuchsnj/bounds"
