@@ -374,4 +374,5 @@ fn test_merge() {
 	assert_eq!(Bounds::from(1..4).merge(Bounds::from(2..3)), Bounds::from(1..4));
 	assert_eq!(Bounds::from(1..4).merge(Bounds::from(0..2)), Bounds::from(0..4));
 	assert_eq!(Bounds::from(1..4).merge(Bounds::from(3..5)), Bounds::from(1..5));
+	assert_eq!(Bounds::from(1..4).merge(Bounds::from(0..5)), Bounds::from(0..5));
 }
