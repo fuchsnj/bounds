@@ -1,10 +1,10 @@
-use std::ops::{Range, RangeTo, RangeFrom, RangeFull};
+use std::ops::{Range, RangeTo, RangeFrom, RangeFull, Sub};
 use std::cmp::PartialEq;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BoundType {
 	Inclusive,
-	Exclusive
+	Exclusive,
 }
 
 use self::BoundType::*;
@@ -12,20 +12,20 @@ use self::BoundType::*;
 #[derive(Debug)]
 pub struct Bound<T> {
 	pub bound_type: BoundType,
-	pub value: T
+	pub value: T,
 }
 
 impl<T> Bound<T> {
 	pub fn inclusive(value: T) -> Bound<T> {
 		Bound {
 			bound_type: BoundType::Inclusive,
-			value
+			value,
 		}
 	}
 	pub fn exclusive(value: T) -> Bound<T> {
 		Bound {
 			bound_type: BoundType::Exclusive,
-			value
+			value,
 		}
 	}
 }
@@ -33,7 +33,7 @@ impl<T> Bound<T> {
 #[derive(Debug)]
 pub enum Bounds<T> {
 	Exact(T),
-	Range(Option<Bound<T>>, Option<Bound<T>>)
+	Range(Option<Bound<T>>, Option<Bound<T>>),
 }
 
 impl<T> From<Range<T>> for Bounds<T> {
@@ -63,6 +63,21 @@ impl<T> From<RangeFrom<T>> for Bounds<T> {
 impl<T> From<RangeFull> for Bounds<T> {
 	fn from(_: RangeFull) -> Self {
 		Bounds::Range(None, None)
+	}
+}
+
+impl<T: Sub<Output=T> + Clone> Bounds<T> {
+	pub fn size(&self) -> Option<T> {
+		match *self {
+			Bounds::Exact(ref x) => {
+				//TODO: use Zero trait once it is stable
+				Some(x.clone() - x.clone())
+			}
+			Bounds::Range(None, _) | Bounds::Range(_, None) => None,
+			Bounds::Range(Some(ref a), Some(ref b)) => {
+				Some(b.value.clone() - a.value.clone())
+			}
+		}
 	}
 }
 
@@ -192,4 +207,16 @@ fn test_intersection() {
 
 	assert!(Bounds::from(1..3).intersects(&Bounds::from(..)));
 	assert!(Bounds::<i32>::from(..).intersects(&Bounds::from(..)));
+}
+
+#[test]
+fn test_size() {
+	assert_eq!(Bounds::from(0..2).size(), Some(2));
+	assert_eq!(Bounds::from(-1..1).size(), Some(2));
+	assert_eq!(Bounds::from(1..3).size(), Some(2));
+	assert_eq!(Bounds::from(0..0).size(), Some(0));
+	assert_eq!(Bounds::from(1..1).size(), Some(0));
+	assert_eq!(Bounds::from(1..).size(), None);
+	assert_eq!(Bounds::from(..1).size(), None);
+	assert_eq!(Bounds::<u32>::from(..).size(), None);
 }
