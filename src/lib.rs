@@ -30,6 +30,17 @@ impl<T> Bound<T> {
 	}
 }
 
+impl<T: Neg<Output=T>> Neg for Bound<T> {
+	type Output = Self;
+
+	fn neg(self) -> Self::Output {
+		Bound {
+			bound_type: self.bound_type,
+			value: -self.value,
+		}
+	}
+}
+
 impl<T: Ord> Bound<T> {
 	pub fn is_max(&self, other: &Self) -> bool {
 		match self.value.cmp(&other.value) {
@@ -119,7 +130,7 @@ impl<T> From<RangeTo<T>> for Bounds<T> {
 impl<T> From<RangeFrom<T>> for Bounds<T> {
 	fn from(range: RangeFrom<T>) -> Self {
 		;
-		let start = Bound::exclusive(range.start);
+		let start = Bound::inclusive(range.start);
 		Bounds::Range(Some(start), None)
 	}
 }
@@ -127,6 +138,17 @@ impl<T> From<RangeFrom<T>> for Bounds<T> {
 impl<T> From<RangeFull> for Bounds<T> {
 	fn from(_: RangeFull) -> Self {
 		Bounds::Range(None, None)
+	}
+}
+
+impl<T: Neg<Output=T>> Neg for Bounds<T> {
+	type Output = Bounds<T>;
+
+	fn neg(self) -> Self::Output {
+		match self {
+			Bounds::Exact(x) => Bounds::Exact(-x),
+			Bounds::Range(a, b) => Bounds::Range(b.map(Neg::neg), a.map(Neg::neg))
+		}
 	}
 }
 
@@ -375,4 +397,13 @@ fn test_merge() {
 	assert_eq!(Bounds::from(1..4).merge(Bounds::from(0..2)), Bounds::from(0..4));
 	assert_eq!(Bounds::from(1..4).merge(Bounds::from(3..5)), Bounds::from(1..5));
 	assert_eq!(Bounds::from(1..4).merge(Bounds::from(0..5)), Bounds::from(0..5));
+}
+
+#[test]
+fn test_neg() {
+	assert_eq!(-Bounds::from(1..3), Bounds::Range(Some(Bound::exclusive(-3)), Some(Bound::inclusive(-1))));
+	assert_eq!(-Bounds::Exact(2), Bounds::Exact(-2));
+	assert_eq!(-Bounds::from(1..), Bounds::Range(None, Some(Bound::inclusive(-1))));
+	assert_eq!(-Bounds::from(..2), Bounds::Range(Some(Bound::exclusive(-2)), None));
+	assert_eq!(-Bounds::<i32>::from(..), Bounds::<i32>::from(..));
 }
