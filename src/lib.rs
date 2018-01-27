@@ -201,6 +201,14 @@ impl<T: Add<T, Output=T> + Clone + Eq + Ord> Add for Bounds<T> {
 	}
 }
 
+impl<T: Neg<Output=T> + Add<T, Output=T> + Clone + Eq + Ord> Sub for Bounds<T> {
+	type Output = Self;
+
+	fn sub(self, other: Self) -> Self::Output {
+		self + -other
+	}
+}
+
 impl<T: Sub<Output=T> + Clone> Bounds<T> {
 	pub fn size(&self) -> Option<T> {
 		match *self {
@@ -465,4 +473,18 @@ fn test_add() {
 	assert_eq!(Bounds::from(1..3) + Bounds::from(..), Bounds::from(..));
 	assert_eq!(Bounds::from(1..3) + Bounds::from(1..), Bounds::from(2..));
 	assert_eq!(Bounds::from(1..3) + Bounds::from(..3), Bounds::from(..6));
+}
+
+#[test]
+fn test_sub() {
+	assert_eq!(Bounds::from(1..3) - Bounds::from(2..3),
+	           Bounds::Range(Some(Bound::exclusive(-2)), Some(Bound::exclusive(1))));
+	assert_eq!(Bounds::Exact(1) - Bounds::from(1..3),
+	           Bounds::Range(Some(Bound::exclusive(-2)), Some(Bound::inclusive(0))));
+	assert_eq!(Bounds::from(1..3) - Bounds::Exact(1), Bounds::from(0..2));
+	assert_eq!(Bounds::from(1..3) - Bounds::from(..), Bounds::from(..));
+	assert_eq!(Bounds::from(1..3) - Bounds::from(1..),
+	           Bounds::Range(None, Some(Bound::exclusive(2))));
+	assert_eq!(Bounds::from(1..3) - Bounds::from(..3),
+	           Bounds::Range(Some(Bound::exclusive(-2)), None));
 }
