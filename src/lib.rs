@@ -1,7 +1,7 @@
-use std::ops::{Range, RangeTo, RangeFrom, RangeFull, Sub, Neg};
+use std::ops::{Range, RangeTo, RangeFrom, RangeFull, Sub, Neg, Add};
 use std::cmp::{PartialOrd, Ordering, Ord};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum BoundType {
 	Inclusive,
 	Exclusive,
@@ -9,7 +9,7 @@ pub enum BoundType {
 
 use self::BoundType::*;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Bound<T> {
 	pub bound_type: BoundType,
 	pub value: T,
@@ -37,6 +37,23 @@ impl<T: Neg<Output=T>> Neg for Bound<T> {
 		Bound {
 			bound_type: self.bound_type,
 			value: -self.value,
+		}
+	}
+}
+
+impl<T: Add<T, Output=T> + Clone> Add for Bound<T> {
+	type Output = Self;
+
+	fn add(self, other: Self) -> Self::Output {
+		let bound_type = if self.bound_type == BoundType::Exclusive || other.bound_type == BoundType::Exclusive {
+			BoundType::Exclusive
+		} else {
+			BoundType::Inclusive
+		};
+
+		Bound {
+			bound_type,
+			value: self.value + other.value,
 		}
 	}
 }
@@ -146,6 +163,40 @@ impl<T: Neg<Output=T>> Neg for Bounds<T> {
 		match self {
 			Bounds::Exact(x) => Bounds::Exact(-x),
 			Bounds::Range(a, b) => Bounds::Range(b.map(Neg::neg), a.map(Neg::neg))
+		}
+	}
+}
+
+fn combine_opts<T, F: FnOnce(T, T) -> T>(a: Option<T>, b: Option<T>, func: F) -> Option<T> {
+	match (a, b) {
+		(Some(a), Some(b)) => Some(func(a, b)),
+		_ => None
+	}
+}
+
+fn add_opts<T: Add<T, Output=T>>(a: Option<T>, b: Option<T>) -> Option<T> {
+	combine_opts(a, b, |a, b| a + b)
+}
+
+impl<T: Add<T, Output=T> + Clone + Eq + Ord> Add for Bounds<T> {
+	type Output = Self;
+
+	fn add(self, other: Self) -> Self::Output {
+		match (self, other) {
+			(Bounds::Exact(a), Bounds::Exact(x)) => {
+				Bounds::Exact(a + x)
+			}
+			(Bounds::Range(a, b), Bounds::Range(x, y)) => {
+				Bounds::Range(add_opts(a.clone(), x.clone()), add_opts(a, y.clone()))
+					.merge(Bounds::Range(add_opts(b.clone(), x), add_opts(b, y)))
+			}
+			(a, b @ Bounds::Exact(_)) => b + a,
+			(Bounds::Exact(a), Bounds::Range(x, y)) => {
+				Bounds::Range(
+					add_opts(Some(Bound::inclusive(a.clone())), x),
+					add_opts(Some(Bound::inclusive(a)), y),
+				)
+			}
 		}
 	}
 }
@@ -404,4 +455,14 @@ fn test_neg() {
 	assert_eq!(-Bounds::from(1..), Bounds::Range(None, Some(Bound::inclusive(-1))));
 	assert_eq!(-Bounds::from(..2), Bounds::Range(Some(Bound::exclusive(-2)), None));
 	assert_eq!(-Bounds::<i32>::from(..), Bounds::<i32>::from(..));
+}
+
+#[test]
+fn test_add() {
+	assert_eq!(Bounds::from(1..3) + Bounds::from(2..3), Bounds::from(3..6));
+	assert_eq!(Bounds::Exact(1) + Bounds::from(1..3), Bounds::from(2..4));
+	assert_eq!(Bounds::from(1..3) + Bounds::Exact(1), Bounds::from(2..4));
+	assert_eq!(Bounds::from(1..3) + Bounds::from(..), Bounds::from(..));
+	assert_eq!(Bounds::from(1..3) + Bounds::from(1..), Bounds::from(2..));
+	assert_eq!(Bounds::from(1..3) + Bounds::from(..3), Bounds::from(..6));
 }
