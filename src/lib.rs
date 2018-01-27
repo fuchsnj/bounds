@@ -121,7 +121,6 @@ impl<T> From<Range<T>> for Bounds<T> {
 
 impl<T> From<RangeTo<T>> for Bounds<T> {
 	fn from(range: RangeTo<T>) -> Self {
-		;
 		let end = Bound::exclusive(range.end);
 		Bounds::Range(None, Some(end))
 	}
@@ -129,7 +128,6 @@ impl<T> From<RangeTo<T>> for Bounds<T> {
 
 impl<T> From<RangeFrom<T>> for Bounds<T> {
 	fn from(range: RangeFrom<T>) -> Self {
-		;
 		let start = Bound::inclusive(range.start);
 		Bounds::Range(Some(start), None)
 	}
