@@ -147,7 +147,7 @@ impl<T: Add<T, Output=T> + Clone + Eq + Ord> Add for Bounds<T> {
 }
 
 impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
-    type Output = Option<Self>;
+    type Output = Self;
 
     fn mul(self, other: Self) -> Self::Output {
         let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>>{
@@ -155,7 +155,7 @@ impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
         };
         match (self, other) {
             (Bounds::Exact(a), Bounds::Exact(x)) => {
-                Some(Bounds::Exact(a * x))
+                Bounds::Exact(a * x)
             }
             (Bounds::Range(a, b), Bounds::Range(x, y)) => {
                 let left_signs = SignBounds::from_bounds(&a, &b);
@@ -197,28 +197,23 @@ impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
                         });
                     }
                 });
-                Some(Bounds::Range(
+                Bounds::Range(
                     if negative_infinity { None } else { lower_bound },
                     if positive_infinity { None } else { upper_bound },
-                ))
+                )
             }
             (Bounds::Exact(a), Bounds::Range(x, y)) | (Bounds::Range(x, y), Bounds::Exact(a)) => {
                 if a == T::zero() {
-                    return if x.is_none() || y.is_none() {
-                        None
-                    } else {
-                        Some(Bounds::Exact(a))
-                    };
+                    return Bounds::Exact(a);
                 }
                 let not_negative = { a >= T::zero() };
                 let bound_1 = opt_func(Some(Bound::inclusive(a.clone())), x);
                 let bound_2 = opt_func(Some(Bound::inclusive(a)), y);
-                let output = if not_negative {
+                if not_negative {
                     Bounds::Range(bound_1, bound_2)
                 } else {
                     Bounds::Range(bound_2, bound_1)
-                };
-                Some(output)
+                }
             }
         }
     }

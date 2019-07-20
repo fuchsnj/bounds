@@ -132,32 +132,32 @@ fn test_sub() {
 
 #[test]
 fn test_mul() {
-    assert_eq!(Bounds::Exact(1) * Bounds::from(1..3), Some(Bounds::from(1..3)));
-    assert_eq!(Bounds::Exact(1) * Bounds::from(2..), Some(Bounds::from(2..)));
-    assert_eq!(Bounds::Exact(1) * Bounds::from(..2), Some(Bounds::from(..2)));
-    assert_eq!(Bounds::Exact(-1) * Bounds::from(1..3), Some(Bounds::Range(Some(Bound::exclusive(-3)), Some(Bound::inclusive(-1)))));
-    assert_eq!(Bounds::Exact(-1) * Bounds::from(2..), Some(Bounds::Range(None, Some(Bound::inclusive(-2)))));
-    assert_eq!(Bounds::Exact(-1) * Bounds::from(..2), Some(Bounds::Range(Some(Bound::exclusive(-2)), None)));
-    assert_eq!(Bounds::Exact(0) * Bounds::from(2..3), Some(Bounds::Exact(0)));
-    assert_eq!(Bounds::Exact(0) * Bounds::from(..), None);
-    assert_eq!(Bounds::Exact(0) * Bounds::from(2..), None);
-    assert_eq!(Bounds::Exact(0) * Bounds::from(..3), None);
-
-    assert_eq!(Bounds::<i32>::Range(None, None) * Bounds::Range(None, None), Some(Bounds::Range(None, None)));
-    assert_eq!(Bounds::Range(None, None) * Bounds::from(1..2), Some(Bounds::Range(None, None)));
-    assert_eq!(Bounds::from(1..2) * Bounds::from(..), Some(Bounds::from(..)));
-    assert_eq!(Bounds::Exact(-1) * Bounds::from(1..), Some(Bounds::Range(None, Some(Bound::inclusive(-1)))));
-    assert_eq!(Bounds::from(1..3) * Bounds::from(2..3), Some(Bounds::from(2..9)));
-    assert_eq!(Bounds::from(1..3) * Bounds::Exact(1), Some(Bounds::from(1..3)));
-    assert_eq!(Bounds::from(1..3) * Bounds::from(..), Some(Bounds::from(..)));
-    assert_eq!(Bounds::from(..) * Bounds::from(1..3), Some(Bounds::from(..)));
-    assert_eq!(Bounds::from(1..3) * Bounds::from(1..), Some(Bounds::from(1..)));
-    assert_eq!(Bounds::from(1..) * Bounds::from(1..3), Some(Bounds::from(1..)));
-    assert_eq!(Bounds::from(1..3) * Bounds::from(..3), Some(Bounds::from(..9)));
-    assert_eq!(Bounds::from(1..3) * Bounds::Exact(0), Some(Bounds::Exact(0)));
-    assert_eq!(Bounds::from(1..) * Bounds::Exact(1), Some(Bounds::from(1..)));
-    assert_eq!(Bounds::from(-1..1) * Bounds::from(1..), Some(Bounds::from(..)));
-    assert_eq!(Bounds::from(..1) * Bounds::from(1..), Some(Bounds::from(..)));
-    assert_eq!(Bounds::from(-1..) * Bounds::from(1..), Some(Bounds::from(..)));
-    assert_eq!(Bounds::from(-1..1) * Bounds::from(..), Some(Bounds::from(..)));
+    assert_eq!(Bounds::Exact(1) * Bounds::from(1..3), Bounds::from(1..3));
+    assert_eq!(Bounds::Exact(1) * Bounds::from(2..), Bounds::from(2..));
+    assert_eq!(Bounds::Exact(1) * Bounds::from(..2), Bounds::from(..2));
+    assert_eq!(Bounds::Exact(-1) * Bounds::from(1..3), Bounds::Range(Some(Bound::exclusive(-3)), Some(Bound::inclusive(-1))));
+    assert_eq!(Bounds::Exact(-1) * Bounds::from(2..), Bounds::Range(None, Some(Bound::inclusive(-2))));
+    assert_eq!(Bounds::Exact(-1) * Bounds::from(..2), Bounds::Range(Some(Bound::exclusive(-2)), None));
+    assert_eq!(Bounds::Exact(0) * Bounds::from(2..3), Bounds::Exact(0));
+    assert_eq!(Bounds::Exact(0) * Bounds::from(..), Bounds::Exact(0));
+    assert_eq!(Bounds::Exact(0) * Bounds::from(2..), Bounds::Exact(0));
+    assert_eq!(Bounds::Exact(0) * Bounds::from(..3), Bounds::Exact(0));
+//
+    assert_eq!(Bounds::<i32>::Range(None, None) * Bounds::Range(None, None), Bounds::Range(None, None));
+    assert_eq!(Bounds::Range(None, None) * Bounds::from(1..2), Bounds::Range(None, None));
+    assert_eq!(Bounds::from(1..2) * Bounds::from(..), Bounds::from(..));
+    assert_eq!(Bounds::Exact(-1) * Bounds::from(1..), Bounds::Range(None, Some(Bound::inclusive(-1))));
+    assert_eq!(Bounds::from(1..3) * Bounds::from(2..3), Bounds::from(2..9));
+    assert_eq!(Bounds::from(1..3) * Bounds::Exact(1), Bounds::from(1..3));
+    assert_eq!(Bounds::from(1..3) * Bounds::from(..), Bounds::from(..));
+    assert_eq!(Bounds::from(..) * Bounds::from(1..3), Bounds::from(..));
+    assert_eq!(Bounds::from(1..3) * Bounds::from(1..), Bounds::from(1..));
+    assert_eq!(Bounds::from(1..) * Bounds::from(1..3), Bounds::from(1..));
+    assert_eq!(Bounds::from(1..3) * Bounds::from(..3), Bounds::from(..9));
+    assert_eq!(Bounds::from(1..3) * Bounds::Exact(0), Bounds::Exact(0));
+    assert_eq!(Bounds::from(1..) * Bounds::Exact(1), Bounds::from(1..));
+    assert_eq!(Bounds::from(-1..1) * Bounds::from(1..), Bounds::from(..));
+    assert_eq!(Bounds::from(..1) * Bounds::from(1..), Bounds::from(..));
+    assert_eq!(Bounds::from(-1..) * Bounds::from(1..), Bounds::from(..));
+    assert_eq!(Bounds::from(-1..1) * Bounds::from(..), Bounds::from(..));
 }
