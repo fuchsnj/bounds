@@ -14,7 +14,7 @@ impl Neg for Comparison {
         match self {
             Comparison::Less => Comparison::Greater,
             Comparison::Intersects => Comparison::Intersects,
-            Comparison::Greater => Comparison::Less
+            Comparison::Greater => Comparison::Less,
         }
     }
 }

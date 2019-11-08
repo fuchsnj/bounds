@@ -4,10 +4,10 @@ pub enum BoundType {
     Exclusive,
 }
 
-use std::ops::Neg;
+use std::cmp::Ordering;
 use std::ops::Add;
 use std::ops::Mul;
-use std::cmp::Ordering;
+use std::ops::Neg;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Bound<T> {
@@ -28,7 +28,7 @@ impl<T: Ord> Bound<T> {
         match self.value.cmp(&other.value) {
             Ordering::Greater => true,
             Ordering::Less => false,
-            Ordering::Equal => self.bound_type == BoundType::Inclusive
+            Ordering::Equal => self.bound_type == BoundType::Inclusive,
         }
     }
     pub fn lower_bound_min(a: Self, b: Self) -> Self {
@@ -43,7 +43,7 @@ impl<T: Ord> Bound<T> {
         match self.value.cmp(&other.value) {
             Ordering::Greater => false,
             Ordering::Less => true,
-            Ordering::Equal => self.bound_type == BoundType::Inclusive
+            Ordering::Equal => self.bound_type == BoundType::Inclusive,
         }
     }
 }
@@ -63,7 +63,9 @@ impl<T> Bound<T> {
     }
 
     pub fn combine<F: FnOnce(T, T) -> T>(self, other: Self, func: F) -> Self {
-        let bound_type = if self.bound_type == BoundType::Exclusive || other.bound_type == BoundType::Exclusive {
+        let bound_type = if self.bound_type == BoundType::Exclusive
+            || other.bound_type == BoundType::Exclusive
+        {
             BoundType::Exclusive
         } else {
             BoundType::Inclusive
@@ -76,7 +78,7 @@ impl<T> Bound<T> {
     }
 }
 
-impl<T: Neg<Output=T>> Neg for Bound<T> {
+impl<T: Neg<Output = T>> Neg for Bound<T> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
@@ -87,7 +89,7 @@ impl<T: Neg<Output=T>> Neg for Bound<T> {
     }
 }
 
-impl<T: Add<T, Output=T>> Add for Bound<T> {
+impl<T: Add<T, Output = T>> Add for Bound<T> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
@@ -95,7 +97,7 @@ impl<T: Add<T, Output=T>> Add for Bound<T> {
     }
 }
 
-impl<T: Mul<T, Output=T>> Mul for Bound<T> {
+impl<T: Mul<T, Output = T>> Mul for Bound<T> {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self::Output {

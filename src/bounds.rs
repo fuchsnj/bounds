@@ -1,18 +1,18 @@
-use std::ops::{Range, Div};
 use bound::Bound;
-use std::ops::RangeTo;
-use std::ops::RangeFrom;
-use std::ops::RangeFull;
-use std::ops::Neg;
-use std::ops::Add;
-use std::ops::Mul;
-use std::ops::Sub;
-use std::cmp::Ordering;
 use bound::BoundType::*;
 use comparison::Comparison;
 use num::Zero;
-use std::fmt::Debug;
 use sign_bounds::SignBounds;
+use std::cmp::Ordering;
+use std::fmt::Debug;
+use std::ops::Add;
+use std::ops::Mul;
+use std::ops::Neg;
+use std::ops::RangeFrom;
+use std::ops::RangeFull;
+use std::ops::RangeTo;
+use std::ops::Sub;
+use std::ops::{Div, Range};
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Bounds<T> {
@@ -48,13 +48,13 @@ impl<T> From<RangeFull> for Bounds<T> {
     }
 }
 
-impl<T: Neg<Output=T>> Neg for Bounds<T> {
+impl<T: Neg<Output = T>> Neg for Bounds<T> {
     type Output = Bounds<T>;
 
     fn neg(self) -> Self::Output {
         match self {
             Bounds::Exact(x) => Bounds::Exact(-x),
-            Bounds::Range(a, b) => Bounds::Range(b.map(Neg::neg), a.map(Neg::neg))
+            Bounds::Range(a, b) => Bounds::Range(b.map(Neg::neg), a.map(Neg::neg)),
         }
     }
 }
@@ -62,21 +62,19 @@ impl<T: Neg<Output=T>> Neg for Bounds<T> {
 fn combine_opts<T, F: FnOnce(T, T) -> T>(a: Option<T>, b: Option<T>, func: F) -> Option<T> {
     match (a, b) {
         (Some(a), Some(b)) => Some(func(a, b)),
-        _ => None
+        _ => None,
     }
 }
 
-impl<T: Add<T, Output=T> + Clone + Eq + Ord> Add for Bounds<T> {
+impl<T: Add<T, Output = T> + Clone + Eq + Ord> Add for Bounds<T> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
-        let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>>{
+        let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>> {
             combine_opts(a, b, |a, b| a.combine(b, |x, y| x + y))
         };
         match (self, other) {
-            (Bounds::Exact(a), Bounds::Exact(x)) => {
-                Bounds::Exact(a + x)
-            }
+            (Bounds::Exact(a), Bounds::Exact(x)) => Bounds::Exact(a + x),
             (Bounds::Range(a, b), Bounds::Range(x, y)) => {
                 Bounds::Range(opt_func(a, x), opt_func(b, y))
             }
@@ -90,17 +88,15 @@ impl<T: Add<T, Output=T> + Clone + Eq + Ord> Add for Bounds<T> {
     }
 }
 
-impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
+impl<T: Mul<T, Output = T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self::Output {
-        let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>>{
+        let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>> {
             combine_opts(a, b, |a, b| a.combine(b, |x, y| x * y))
         };
         match (self, other) {
-            (Bounds::Exact(a), Bounds::Exact(x)) => {
-                Bounds::Exact(a * x)
-            }
+            (Bounds::Exact(a), Bounds::Exact(x)) => Bounds::Exact(a * x),
             (Bounds::Range(a, b), Bounds::Range(x, y)) => {
                 let left_signs = SignBounds::from_bounds(&a, &b);
                 let right_signs = SignBounds::from_bounds(&x, &y);
@@ -129,15 +125,17 @@ impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
                     combine_opts(a.clone(), y.clone(), |a, b| a * b),
                     combine_opts(b.clone(), x.clone(), |a, b| a * b),
                     combine_opts(b.clone(), y.clone(), |a, b| a * b),
-                ].into_iter().for_each(|bound| {
+                ]
+                .into_iter()
+                .for_each(|bound| {
                     if let Some(bound) = bound {
                         lower_bound = Some(match lower_bound.take() {
                             Some(x) => Bound::lower_bound_min(bound.clone(), x),
-                            None => bound.clone()
+                            None => bound.clone(),
                         });
                         upper_bound = Some(match upper_bound.take() {
                             Some(x) => Bound::upper_bound_max(bound, x),
-                            None => bound
+                            None => bound,
                         });
                     }
                 });
@@ -163,11 +161,11 @@ impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
     }
 }
 
-impl<T: Div<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
+impl<T: Div<T, Output = T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
     type Output = Option<Self>;
 
     fn div(self, other: Self) -> Self::Output {
-        let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>>{
+        let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>> {
             combine_opts(a, b, |a, b| a.combine(b, |x, y| x / y))
         };
         match (self, other) {
@@ -194,7 +192,7 @@ impl<T: Div<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
                     let positive = a >= T::zero();
                     let bound = Some(match y {
                         Some(y) => Bound::inclusive(a.clone()).combine(y, |c, d| c / d),
-                        None => Bound::exclusive(T::zero())
+                        None => Bound::exclusive(T::zero()),
                     });
                     return Some(if positive {
                         Bounds::Range(bound, None)
@@ -206,7 +204,7 @@ impl<T: Div<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
                     let positive = a >= T::zero();
                     let bound = Some(match x {
                         Some(x) => Bound::inclusive(a.clone()).combine(x, |c, d| c / d),
-                        None => Bound::exclusive(T::zero())
+                        None => Bound::exclusive(T::zero()),
                     });
                     return Some(if positive {
                         Bounds::Range(None, bound)
@@ -240,7 +238,7 @@ impl<T: Div<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
     }
 }
 
-impl<T: Neg<Output=T> + Add<T, Output=T> + Clone + Eq + Ord> Sub for Bounds<T> {
+impl<T: Neg<Output = T> + Add<T, Output = T> + Clone + Eq + Ord> Sub for Bounds<T> {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
@@ -248,47 +246,40 @@ impl<T: Neg<Output=T> + Add<T, Output=T> + Clone + Eq + Ord> Sub for Bounds<T> {
     }
 }
 
-impl<T: Sub<Output=T> + Clone + Zero> Bounds<T> {
+impl<T: Sub<Output = T> + Clone + Zero> Bounds<T> {
     pub fn size(&self) -> Option<T> {
         match *self {
-            Bounds::Exact(_) => {
-                Some(T::zero())
-            }
+            Bounds::Exact(_) => Some(T::zero()),
             Bounds::Range(None, _) | Bounds::Range(_, None) => None,
-            Bounds::Range(Some(ref a), Some(ref b)) => {
-                Some(b.value.clone() - a.value.clone())
-            }
+            Bounds::Range(Some(ref a), Some(ref b)) => Some(b.value.clone() - a.value.clone()),
         }
     }
 }
 
-
 impl<T: Eq + Ord> Bounds<T> {
     pub fn merge(self, other: Self) -> Self {
         match (self, other) {
-            (Bounds::Exact(a), Bounds::Exact(x)) => {
-                match a.cmp(&x) {
-                    Ordering::Equal => Bounds::Exact(a),
-                    Ordering::Less => Bounds::Range(Some(Bound::inclusive(a)), Some(Bound::inclusive(x))),
-                    Ordering::Greater => Bounds::Range(Some(Bound::inclusive(x)), Some(Bound::inclusive(a)))
+            (Bounds::Exact(a), Bounds::Exact(x)) => match a.cmp(&x) {
+                Ordering::Equal => Bounds::Exact(a),
+                Ordering::Less => {
+                    Bounds::Range(Some(Bound::inclusive(a)), Some(Bound::inclusive(x)))
                 }
-            }
+                Ordering::Greater => {
+                    Bounds::Range(Some(Bound::inclusive(x)), Some(Bound::inclusive(a)))
+                }
+            },
             (Bounds::Range(a, b), Bounds::Range(x, y)) => {
                 debug_assert_bounds_order(&a, &b);
                 debug_assert_bounds_order(&x, &y);
                 let high = match (b, y) {
                     (None, None) => None,
                     (Some(val), None) | (None, Some(val)) => Some(val),
-                    (Some(b), Some(y)) => {
-                        Some(Bound::upper_bound_max(b, y))
-                    }
+                    (Some(b), Some(y)) => Some(Bound::upper_bound_max(b, y)),
                 };
                 let low = match (a, x) {
                     (None, None) => None,
                     (Some(val), None) | (None, Some(val)) => Some(val),
-                    (Some(a), Some(x)) => {
-                        Some(Bound::lower_bound_min(a, x))
-                    }
+                    (Some(a), Some(x)) => Some(Bound::lower_bound_min(a, x)),
                 };
                 Bounds::Range(low, high)
             }
@@ -334,28 +325,34 @@ impl<T: Eq + Ord> Bounds<T> {
 
     pub fn compare_to(&self, other: &Bounds<T>) -> Comparison {
         match (self, other) {
-            (&Bounds::Exact(ref a), &Bounds::Exact(ref x)) => {
-                match a.cmp(&x) {
-                    Ordering::Equal => Comparison::Intersects,
-                    Ordering::Less => Comparison::Less,
-                    Ordering::Greater => Comparison::Greater
-                }
-            }
+            (&Bounds::Exact(ref a), &Bounds::Exact(ref x)) => match a.cmp(&x) {
+                Ordering::Equal => Comparison::Intersects,
+                Ordering::Less => Comparison::Less,
+                Ordering::Greater => Comparison::Greater,
+            },
             (&Bounds::Range(ref a, ref b), &Bounds::Range(ref x, ref y)) => {
                 debug_assert_bounds_order(a, b);
                 debug_assert_bounds_order(x, y);
                 if let (&Some(ref a), &Some(ref y)) = (a, y) {
                     if a.bound_type == Inclusive && y.bound_type == Inclusive {
-                        if a.value > y.value { return Comparison::Greater; }
+                        if a.value > y.value {
+                            return Comparison::Greater;
+                        }
                     } else {
-                        if a.value >= y.value { return Comparison::Greater; }
+                        if a.value >= y.value {
+                            return Comparison::Greater;
+                        }
                     }
                 }
                 if let (&Some(ref b), &Some(ref x)) = (b, x) {
                     if b.bound_type == Inclusive && x.bound_type == Inclusive {
-                        if b.value < x.value { return Comparison::Less; }
+                        if b.value < x.value {
+                            return Comparison::Less;
+                        }
                     } else {
-                        if b.value <= x.value { return Comparison::Less; }
+                        if b.value <= x.value {
+                            return Comparison::Less;
+                        }
                     }
                 }
                 Comparison::Intersects
@@ -366,10 +363,14 @@ impl<T: Eq + Ord> Bounds<T> {
                 if let &Some(ref x) = x {
                     match x.bound_type {
                         Inclusive => {
-                            if a < &x.value { return Comparison::Less; }
+                            if a < &x.value {
+                                return Comparison::Less;
+                            }
                         }
                         Exclusive => {
-                            if a <= &x.value { return Comparison::Less; }
+                            if a <= &x.value {
+                                return Comparison::Less;
+                            }
                         }
                     }
                 }
@@ -377,10 +378,14 @@ impl<T: Eq + Ord> Bounds<T> {
                 if let &Some(ref y) = y {
                     match y.bound_type {
                         Inclusive => {
-                            if a > &y.value { return Comparison::Greater; }
+                            if a > &y.value {
+                                return Comparison::Greater;
+                            }
                         }
                         Exclusive => {
-                            if a >= &y.value { return Comparison::Greater; }
+                            if a >= &y.value {
+                                return Comparison::Greater;
+                            }
                         }
                     }
                 }
@@ -393,8 +398,11 @@ impl<T: Eq + Ord> Bounds<T> {
 
 #[inline(always)]
 fn debug_assert_bounds_order<T: PartialOrd>(x: &Option<Bound<T>>, y: &Option<Bound<T>>) {
-    debug_assert!(match (x, y) {
-        (&Some(ref x), &Some(ref y)) => x.value <= y.value,
-        _ => true
-    }, "invalid range: start must be less than end");
+    debug_assert!(
+        match (x, y) {
+            (&Some(ref x), &Some(ref y)) => x.value <= y.value,
+            _ => true,
+        },
+        "invalid range: start must be less than end"
+    );
 }

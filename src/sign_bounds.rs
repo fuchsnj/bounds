@@ -10,15 +10,21 @@ pub struct SignBounds {
 
 impl SignBounds {
     pub fn from_bounds<T: Ord + Zero>(a: &Option<Bound<T>>, b: &Option<Bound<T>>) -> SignBounds {
-        let left = a.as_ref().map(Self::from_bound).unwrap_or(SignBounds::below_zero());
-        let right = b.as_ref().map(Self::from_bound).unwrap_or(SignBounds::above_zero());
+        let left = a
+            .as_ref()
+            .map(Self::from_bound)
+            .unwrap_or(SignBounds::below_zero());
+        let right = b
+            .as_ref()
+            .map(Self::from_bound)
+            .unwrap_or(SignBounds::above_zero());
         left.merge(&right)
     }
     pub fn from_value<T: Zero + Ord>(value: &T) -> SignBounds {
         match value.cmp(&T::zero()) {
             Ordering::Equal => SignBounds::zero(),
             Ordering::Greater => SignBounds::above_zero(),
-            Ordering::Less => SignBounds::below_zero()
+            Ordering::Less => SignBounds::below_zero(),
         }
     }
     pub fn from_bound<T: Zero + Ord>(bound: &Bound<T>) -> SignBounds {
@@ -31,7 +37,7 @@ impl SignBounds {
                 }
             }
             Ordering::Greater => SignBounds::above_zero(),
-            Ordering::Less => SignBounds::below_zero()
+            Ordering::Less => SignBounds::below_zero(),
         }
     }
     pub fn zero() -> SignBounds {
@@ -70,7 +76,7 @@ impl SignBounds {
         SignBounds {
             above_zero,
             below_zero,
-            zero
+            zero,
         }
     }
 }
