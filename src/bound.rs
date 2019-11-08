@@ -62,7 +62,6 @@ impl<T> Bound<T> {
         }
     }
 
-
     pub fn combine<F: FnOnce(T, T) -> T>(self, other: Self, func: F) -> Self {
         let bound_type = if self.bound_type == BoundType::Exclusive || other.bound_type == BoundType::Exclusive {
             BoundType::Exclusive
@@ -103,48 +102,3 @@ impl<T: Mul<T, Output=T>> Mul for Bound<T> {
         self.combine(other, Mul::mul)
     }
 }
-
-//impl<T: Ord> Bound<T> {
-//    pub fn is_max(&self, other: &Self) -> bool {
-//        match self.value.cmp(&other.value) {
-//            Ordering::Greater => true,
-//            Ordering::Less => false,
-//            Ordering::Equal => {
-//                if self.bound_type == BoundType::Inclusive {
-//                    true
-//                } else {
-//                    false
-//                }
-//            }
-//        }
-//    }
-//
-//    pub fn max(self, other: Self) -> Self {
-//        if self.is_max(&other) {
-//            self
-//        } else {
-//            other
-//        }
-//    }
-//    pub fn is_min(&self, other: &Self) -> bool {
-//        match self.value.cmp(&other.value) {
-//            Ordering::Less => true,
-//            Ordering::Greater => false,
-//            Ordering::Equal => {
-//                if self.bound_type == BoundType::Inclusive {
-//                    true
-//                } else {
-//                    false
-//                }
-//            }
-//        }
-//    }
-//
-//    pub fn min(self, other: Self) -> Self {
-//        if self.is_min(&other) {
-//            self
-//        } else {
-//            other
-//        }
-//    }
-//}
