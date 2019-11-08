@@ -8,7 +8,6 @@ use std::ops::Neg;
 use std::ops::Add;
 use std::ops::Mul;
 use std::cmp::Ordering;
-use num::Zero;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Bound<T> {

@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::{Range, Div};
 use bound::Bound;
 use std::ops::RangeTo;
 use std::ops::RangeFrom;
@@ -19,17 +19,6 @@ pub enum Bounds<T> {
     Exact(T),
     Range(Option<Bound<T>>, Option<Bound<T>>),
 }
-
-//impl<T> From<Option<Bound<T>>> for Bounds<T> {
-//    fn from(value: Option<Bound<T>>) -> Self {
-//        if let Some(value) = value {
-//            if value.bound_type == Inclusive {
-//                return Bounds::Exact(value.value);
-//            }
-//        }
-//        Bounds::from(..)
-//    }
-//}
 
 impl<T> From<Range<T>> for Bounds<T> {
     fn from(range: Range<T>) -> Self {
@@ -70,57 +59,12 @@ impl<T: Neg<Output=T>> Neg for Bounds<T> {
     }
 }
 
-//impl<T: Clone + Eq + Ord + Add<T, Output=T>> Bounds<T> {
-//    pub fn combine_add(self, other: Self) -> Self {
-//
-//    }
-//}
-
-//impl<T: Clone + Eq + Ord> Bounds<T> {
-//    pub fn combine<F, R>(self, other: Self, func: F, check_reverse: R) -> Self
-//        where F: Fn(T, T) -> T + Copy,
-//              R: Fn(&T) -> bool + Copy {
-//        let bound_func = |a: Bound<T>, b: Bound<T>| -> Bound<T> {
-//            a.combine(b, |a, b| func(a, b))
-//        };
-//        let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>>{
-//            combine_opts(a, b, |a, b| bound_func(a, b))
-//        };
-//
-//        match (self, other) {
-//            (Bounds::Exact(a), Bounds::Exact(x)) => {
-//                Bounds::Exact(func(a, x))
-//            }
-//            (Bounds::Range(a, b), Bounds::Range(x, y)) => {
-////                Bounds::from(a.clone()).combine(Bounds::Range(x.clone(), y.clone()), func, check_reverse)
-////                    .merge(Bounds::from(b.clone()).combine(Bounds::Range(x.clone(), y.clone()), func, check_reverse))
-//                Bounds::Range(opt_func(a.clone(), x.clone()), opt_func(a, y.clone()))
-//                    .merge(Bounds::Range(opt_func(b.clone(), x), opt_func(b, y)))
-//            }
-//            (Bounds::Exact(a), Bounds::Range(x, y)) | (Bounds::Range(x, y), Bounds::Exact(a)) => {
-//                let reverse = check_reverse(&a);
-//                let first = opt_func(Some(Bound::inclusive(a.clone())), x);
-//                let second = opt_func(Some(Bound::inclusive(a)), y);
-//                if reverse {
-//                    Bounds::Range(second, first)
-//                } else {
-//                    Bounds::Range(first, second)
-//                }
-//            }
-//        }
-//    }
-//}
-
 fn combine_opts<T, F: FnOnce(T, T) -> T>(a: Option<T>, b: Option<T>, func: F) -> Option<T> {
     match (a, b) {
         (Some(a), Some(b)) => Some(func(a, b)),
         _ => None
     }
 }
-
-//fn combine_bounds<T, F: FnOnce(T, T) -> T>(a: Option<Bound<T>>, b: Option<Bound<T>>, func: F) -> Option<Bound<T>> {
-//    combine_opts(a, b, |a, b| a.combine(b, |x, y| func))
-//}
 
 impl<T: Add<T, Output=T> + Clone + Eq + Ord> Add for Bounds<T> {
     type Output = Self;
@@ -203,17 +147,94 @@ impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
                 )
             }
             (Bounds::Exact(a), Bounds::Range(x, y)) | (Bounds::Range(x, y), Bounds::Exact(a)) => {
-                if a == T::zero() {
+                if a.is_zero() {
                     return Bounds::Exact(a);
                 }
-                let not_negative = { a >= T::zero() };
+                let positive = { a >= T::zero() };
                 let bound_1 = opt_func(Some(Bound::inclusive(a.clone())), x);
                 let bound_2 = opt_func(Some(Bound::inclusive(a)), y);
-                if not_negative {
+                if positive {
                     Bounds::Range(bound_1, bound_2)
                 } else {
                     Bounds::Range(bound_2, bound_1)
                 }
+            }
+        }
+    }
+}
+
+impl<T: Div<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
+    type Output = Option<Self>;
+
+    fn div(self, other: Self) -> Self::Output {
+        let opt_func = |a: Option<Bound<T>>, b: Option<Bound<T>>| -> Option<Bound<T>>{
+            combine_opts(a, b, |a, b| a.combine(b, |x, y| x / y))
+        };
+        match (self, other) {
+            (Bounds::Exact(a), Bounds::Exact(x)) => {
+                if x.is_zero() {
+                    None
+                } else {
+                    Some(Bounds::Exact(a / x))
+                }
+            }
+            (Bounds::Range(a, b), Bounds::Range(x, y)) => {
+                //TODO: implement
+                unimplemented!()
+            }
+            (Bounds::Exact(a), Bounds::Range(x, y)) => {
+                if SignBounds::from_bounds(&x, &y).zero {
+                    // TODO: [x..y] can contain zero, what should happen here? Currently returning None
+                    return None;
+                }
+                if a.is_zero() {
+                    return Some(Bounds::Exact(T::zero()));
+                }
+                if x == Some(Bound::exclusive(T::zero())) {
+                    let positive = a >= T::zero();
+                    let bound = Some(match y {
+                        Some(y) => Bound::inclusive(a.clone()).combine(y, |c, d| c / d),
+                        None => Bound::exclusive(T::zero())
+                    });
+                    return Some(if positive {
+                        Bounds::Range(bound, None)
+                    } else {
+                        Bounds::Range(None, bound)
+                    });
+                }
+                if y == Some(Bound::exclusive(T::zero())) {
+                    let positive = a >= T::zero();
+                    let bound = Some(match x {
+                        Some(x) => Bound::inclusive(a.clone()).combine(x, |c, d| c / d),
+                        None => Bound::exclusive(T::zero())
+                    });
+                    return Some(if positive {
+                        Bounds::Range(None, bound)
+                    } else {
+                        Bounds::Range(bound, None)
+                    });
+                }
+                let positive = a >= T::zero();
+                let bound_1 = opt_func(Some(Bound::inclusive(a.clone())), x);
+                let bound_2 = opt_func(Some(Bound::inclusive(a)), y);
+                Some(if positive {
+                    Bounds::Range(bound_2, bound_1)
+                } else {
+                    Bounds::Range(bound_1, bound_2)
+                })
+            }
+            (Bounds::Range(x, y), Bounds::Exact(a)) => {
+                if a.is_zero() {
+                    return None;
+                }
+                let positive = a >= T::zero();
+                let bound_1 = opt_func(x, Some(Bound::inclusive(a.clone())));
+                let bound_2 = opt_func(y, Some(Bound::inclusive(a)));
+                Some(if positive {
+                    Bounds::Range(bound_1, bound_2)
+                } else {
+                    Bounds::Range(bound_2, bound_1)
+                })
             }
         }
     }

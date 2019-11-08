@@ -142,7 +142,7 @@ fn test_mul() {
     assert_eq!(Bounds::Exact(0) * Bounds::from(..), Bounds::Exact(0));
     assert_eq!(Bounds::Exact(0) * Bounds::from(2..), Bounds::Exact(0));
     assert_eq!(Bounds::Exact(0) * Bounds::from(..3), Bounds::Exact(0));
-//
+
     assert_eq!(Bounds::<i32>::Range(None, None) * Bounds::Range(None, None), Bounds::Range(None, None));
     assert_eq!(Bounds::Range(None, None) * Bounds::from(1..2), Bounds::Range(None, None));
     assert_eq!(Bounds::from(1..2) * Bounds::from(..), Bounds::from(..));
@@ -160,4 +160,56 @@ fn test_mul() {
     assert_eq!(Bounds::from(..1) * Bounds::from(1..), Bounds::from(..));
     assert_eq!(Bounds::from(-1..) * Bounds::from(1..), Bounds::from(..));
     assert_eq!(Bounds::from(-1..1) * Bounds::from(..), Bounds::from(..));
+}
+
+#[test]
+fn test_div() {
+    assert_eq!(Bounds::Exact(4) / Bounds::Exact(2), Some(Bounds::Exact(2)));
+    assert_eq!(Bounds::Exact(-4) / Bounds::Exact(2), Some(Bounds::Exact(-2)));
+    assert_eq!(Bounds::Exact(4) / Bounds::Exact(-2), Some(Bounds::Exact(-2)));
+    assert_eq!(Bounds::Exact(1) / Bounds::Exact(0), None);
+
+    assert_eq!(Bounds::from(2..6) / Bounds::Exact(2), Some(Bounds::from(1..3)));
+    assert_eq!(Bounds::from(-2..6) / Bounds::Exact(2), Some(Bounds::from(-1..3)));
+    assert_eq!(Bounds::from(-6..-2) / Bounds::Exact(2), Some(Bounds::from(-3..-1)));
+    assert_eq!(Bounds::from(2..6) / Bounds::Exact(-2), Some(Bounds::Range(Some(Bound::exclusive(-3)), Some(Bound::inclusive(-1)))));
+    assert_eq!(Bounds::from(-2..6) / Bounds::Exact(-2), Some(Bounds::Range(Some(Bound::exclusive(-3)), Some(Bound::inclusive(1)))));
+    assert_eq!(Bounds::from(-6..-2) / Bounds::Exact(-2), Some(Bounds::Range(Some(Bound::exclusive(1)), Some(Bound::inclusive(3)))));
+    assert_eq!(Bounds::from(2..6) / Bounds::Exact(0), None);
+    assert_eq!(Bounds::from(2..) / Bounds::Exact(2), Some(Bounds::from(1..)));
+    assert_eq!(Bounds::from(2..) / Bounds::Exact(-2), Some(Bounds::Range(None, Some(Bound::inclusive(-1)))));
+    assert_eq!(Bounds::from(-2..) / Bounds::Exact(2), Some(Bounds::from(-1..)));
+    assert_eq!(Bounds::from(-2..) / Bounds::Exact(-2), Some(Bounds::Range(None, Some(Bound::inclusive(1)))));
+    assert_eq!(Bounds::from(..2) / Bounds::Exact(2), Some(Bounds::from(..1)));
+    assert_eq!(Bounds::from(..2) / Bounds::Exact(-2), Some(Bounds::Range(Some(Bound::exclusive(-1)), None)));
+    assert_eq!(Bounds::from(..-2) / Bounds::Exact(2), Some(Bounds::from(..-1)));
+    assert_eq!(Bounds::from(..-2) / Bounds::Exact(-2), Some(Bounds::Range(Some(Bound::exclusive(1)), None)));
+
+    assert_eq!(Bounds::Exact(2) / Bounds::from(..), None);
+    assert_eq!(Bounds::Exact(0) / Bounds::from(1..2), Some(Bounds::Exact(0)));
+    assert_eq!(Bounds::Exact(6) / Bounds::from(2..3), Some(Bounds::Range(Some(Bound::exclusive(2)), Some(Bound::inclusive(3)))));
+    assert_eq!(Bounds::Exact(-6) / Bounds::from(2..3), Some(Bounds::from(-3..-2)));
+    assert_eq!(Bounds::Exact(6) / Bounds::from(-3..-2), Some(Bounds::Range(Some(Bound::exclusive(-3)), Some(Bound::inclusive(-2)))));
+    assert_eq!(Bounds::Exact(-6) / Bounds::from(-3..-2), Some(Bounds::from(2..3)));
+    assert_eq!(Bounds::Exact(6) / Bounds::from(2..), Some(Bounds::Range(None, Some(Bound::inclusive(3)))));
+    assert_eq!(Bounds::Exact(6) / Bounds::from(-2..), None);
+    assert_eq!(Bounds::Exact(6) / Bounds::from(..2), None);
+    assert_eq!(Bounds::Exact(6) / Bounds::from(..-2), Some(Bounds::Range(Some(Bound::exclusive(-3)), None)));
+
+    assert_eq!(Bounds::Exact(-6) / Bounds::from(2..), Some(Bounds::from(-3..)));
+    assert_eq!(Bounds::Exact(-6) / Bounds::from(-2..), None);
+    assert_eq!(Bounds::Exact(-6) / Bounds::from(..2), None);
+    assert_eq!(Bounds::Exact(-6) / Bounds::from(..-2), Some(Bounds::from(..3)));
+
+    assert_eq!(Bounds::Exact(2) / Bounds::Range(Some(Bound::exclusive(0)), Some(Bound::inclusive(1))), Some(Bounds::from(2..)));
+    assert_eq!(Bounds::Exact(-2) / Bounds::Range(Some(Bound::exclusive(0)), Some(Bound::inclusive(1))),
+               Some(Bounds::Range(None, Some(Bound::inclusive(-2)))));
+    assert_eq!(Bounds::Exact(2) / Bounds::Range(Some(Bound::exclusive(0)), None),
+               Some(Bounds::Range(Some(Bound::exclusive(0)), None)));
+    assert_eq!(Bounds::Exact(-2) / Bounds::Range(Some(Bound::exclusive(0)), None), Some(Bounds::from(..0)));
+    assert_eq!(Bounds::Exact(0) / Bounds::Range(Some(Bound::exclusive(0)), None), Some(Bounds::Exact(0)));
+    assert_eq!(Bounds::Exact(2) / Bounds::from(-1..0), Some(Bounds::Range(None, Some(Bound::inclusive(-2)))));
+    assert_eq!(Bounds::Exact(-2) / Bounds::from(-1..0), Some(Bounds::from(2..)));
+    assert_eq!(Bounds::Exact(2) / Bounds::from(..0), Some(Bounds::from(..0)));
+    assert_eq!(Bounds::Exact(-2) / Bounds::from(..0), Some(Bounds::Range(Some(Bound::exclusive(0)), None)));
 }
