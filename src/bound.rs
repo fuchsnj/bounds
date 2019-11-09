@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use std::ops::Add;
 use std::ops::Mul;
 use std::ops::Neg;
+use std::fmt;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Bound<T> {
@@ -62,6 +63,10 @@ impl<T> Bound<T> {
         }
     }
 
+    pub fn to_exclusive(self) -> Bound<T> {
+        Bound::exclusive(self.value)
+    }
+
     pub fn combine<F: FnOnce(T, T) -> T>(self, other: Self, func: F) -> Self {
         let bound_type = if self.bound_type == BoundType::Exclusive
             || other.bound_type == BoundType::Exclusive
@@ -78,7 +83,7 @@ impl<T> Bound<T> {
     }
 }
 
-impl<T: Neg<Output = T>> Neg for Bound<T> {
+impl<T: Neg<Output=T>> Neg for Bound<T> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
@@ -89,7 +94,7 @@ impl<T: Neg<Output = T>> Neg for Bound<T> {
     }
 }
 
-impl<T: Add<T, Output = T>> Add for Bound<T> {
+impl<T: Add<T, Output=T>> Add for Bound<T> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
@@ -97,7 +102,7 @@ impl<T: Add<T, Output = T>> Add for Bound<T> {
     }
 }
 
-impl<T: Mul<T, Output = T>> Mul for Bound<T> {
+impl<T: Mul<T, Output=T>> Mul for Bound<T> {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self::Output {

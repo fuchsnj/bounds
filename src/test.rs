@@ -1,18 +1,20 @@
+use crate::bounds;
 use bound::Bound;
 use bounds::Bounds;
 use comparison::Comparison;
 
 #[test]
 fn test_intersection() {
-    assert!(Bounds::Exact(42).intersects(&Bounds::Exact(42)));
-    assert!(!Bounds::Exact(42).intersects(&Bounds::Exact(0)));
-    assert!(Bounds::Exact(1).intersects(&Bounds::range(Bound::inclusive(1), Bound::inclusive(3))));
-    assert!(Bounds::Exact(2).intersects(&Bounds::range(Bound::inclusive(1), Bound::inclusive(3))));
-    assert!(Bounds::Exact(3).intersects(&Bounds::range(Bound::inclusive(1), Bound::inclusive(3))));
+    assert!(bounds!(42).intersects(&bounds!(42)));
+    assert!(!bounds!(42).intersects(&bounds!(0)));
 
-    assert!(!Bounds::Exact(1).intersects(&Bounds::range(Bound::exclusive(1), Bound::exclusive(3))));
-    assert!(Bounds::Exact(2).intersects(&Bounds::range(Bound::exclusive(1), Bound::exclusive(3))));
-    assert!(!Bounds::Exact(3).intersects(&Bounds::range(Bound::exclusive(1), Bound::exclusive(3))));
+    assert!(Bounds::Exact(1).intersects(&bounds!(1, 3)));
+    assert!(Bounds::Exact(2).intersects(&bounds!(1, 3)));
+    assert!(Bounds::Exact(3).intersects(&bounds!(1, 3)));
+
+    assert!(!Bounds::Exact(1).intersects(&bounds!(~1, ~3)));
+    assert!(Bounds::Exact(2).intersects(&bounds!(~1, ~3)));
+    assert!(!Bounds::Exact(3).intersects(&bounds!(~1, ~3)));
 
     assert!(!Bounds::range(Bound::exclusive(1), Bound::exclusive(3))
         .intersects(&Bounds::range(Bound::exclusive(3), Bound::exclusive(5))));
@@ -130,6 +132,7 @@ fn test_merge() {
         Bounds::from(1..4).merge(Bounds::from(0..5)),
         Bounds::from(0..5)
     );
+    assert_eq!(bounds!(,-1).merge(bounds!(3,)), bounds!(,));
 }
 
 #[test]
@@ -262,21 +265,21 @@ fn test_div() {
         Bounds::from(2..6) / Bounds::Exact(-2),
         Some(Bounds::Range(
             Some(Bound::exclusive(-3)),
-            Some(Bound::inclusive(-1))
+            Some(Bound::inclusive(-1)),
         ))
     );
     assert_eq!(
         Bounds::from(-2..6) / Bounds::Exact(-2),
         Some(Bounds::Range(
             Some(Bound::exclusive(-3)),
-            Some(Bound::inclusive(1))
+            Some(Bound::inclusive(1)),
         ))
     );
     assert_eq!(
         Bounds::from(-6..-2) / Bounds::Exact(-2),
         Some(Bounds::Range(
             Some(Bound::exclusive(1)),
-            Some(Bound::inclusive(3))
+            Some(Bound::inclusive(3)),
         ))
     );
     assert_eq!(Bounds::from(2..6) / Bounds::Exact(0), None);
@@ -322,7 +325,7 @@ fn test_div() {
         Bounds::Exact(6) / Bounds::from(2..3),
         Some(Bounds::Range(
             Some(Bound::exclusive(2)),
-            Some(Bound::inclusive(3))
+            Some(Bound::inclusive(3)),
         ))
     );
     assert_eq!(
@@ -333,7 +336,7 @@ fn test_div() {
         Bounds::Exact(6) / Bounds::from(-3..-2),
         Some(Bounds::Range(
             Some(Bound::exclusive(-3)),
-            Some(Bound::inclusive(-2))
+            Some(Bound::inclusive(-2)),
         ))
     );
     assert_eq!(
@@ -395,7 +398,19 @@ fn test_div() {
         Some(Bounds::from(..0))
     );
     assert_eq!(
-        Bounds::Exact(-2) / Bounds::from(..0),
+        bounds!((-2)) / Bounds::from(..0),
         Some(Bounds::Range(Some(Bound::exclusive(0)), None))
     );
+
+    assert_eq!(Bounds::from(1..2) / Bounds::from(-1..1), None);
+
+    assert_eq!(bounds!(2, 6) / bounds!(-2,~0), Some(bounds!(, -1)));
+    assert_eq!(bounds!(2, 6) / bounds!(-2, 0), None);
+    assert_eq!(bounds!(2, 6) / bounds!(~0, 2), Some(bounds!(1,)));
+    assert_eq!(bounds!(2, 6) / bounds!(~0, ~2), Some(bounds!(~1,)));
+    assert_eq!(bounds!(-2, 6) / bounds!(~0, 2), Some(bounds!(,)));
+    assert_eq!(bounds!(-6, -2) / bounds!(~0, 2), Some(bounds!(,-1)));
+    assert_eq!(bounds!(~2, 6) / bounds!(~0, 2), Some(bounds!(~1,)));
+    assert_eq!(bounds!(2, ~6) / bounds!(~0, 2), Some(bounds!(1,)));
+    assert_eq!(bounds!(~2, ~6) / bounds!(~0, 2), Some(bounds!(~1,)));
 }
