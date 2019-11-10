@@ -1,6 +1,3 @@
-extern crate core;
-extern crate num;
-
 mod bound;
 mod bounds;
 mod comparison;
