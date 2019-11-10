@@ -26,32 +26,32 @@ fn test_intersection() {
     assert!(Bounds::from(2..4).intersects(&bounds!(1,~3)));
     assert!(!bounds!(3,~5).intersects(&bounds!(1,~3)));
 
-    assert!(!bounds!(1,~3).intersects(&Bounds::from(..0)));
+    assert!(!bounds!(1,~3).intersects(&bounds!(,~0)));
     assert!(!bounds!(1,~3).intersects(&Bounds::from(..1)));
     assert!(bounds!(1,~3).intersects(&bounds!(,~2)));
 
-    assert!(bounds!(1,~3).intersects(&Bounds::from(2..)));
+    assert!(bounds!(1,~3).intersects(&bounds!(2,)));
     assert!(!bounds!(1,~3).intersects(&Bounds::from(3..)));
     assert!(!bounds!(1,~3).intersects(&Bounds::from(4..)));
 
-    assert!(!Bounds::from(2..).intersects(&Bounds::from(..1)));
-    assert!(!Bounds::from(2..).intersects(&bounds!(,~2)));
-    assert!(Bounds::from(2..).intersects(&Bounds::from(..3)));
+    assert!(!bounds!(2,).intersects(&Bounds::from(..1)));
+    assert!(!bounds!(2,).intersects(&bounds!(,~2)));
+    assert!(bounds!(2,).intersects(&Bounds::from(..3)));
 
     assert!(bounds!(,~2).intersects(&bounds!(1,)));
-    assert!(!bounds!(,~2).intersects(&Bounds::from(2..)));
+    assert!(!bounds!(,~2).intersects(&bounds!(2,)));
     assert!(!bounds!(,~2).intersects(&Bounds::from(3..)));
 
     assert!(bounds!(,~2).intersects(&Bounds::from(..1)));
     assert!(bounds!(,~2).intersects(&bounds!(,~2)));
     assert!(bounds!(,~2).intersects(&Bounds::from(..3)));
 
-    assert!(Bounds::from(2..).intersects(&bounds!(1,)));
-    assert!(Bounds::from(2..).intersects(&Bounds::from(2..)));
-    assert!(Bounds::from(2..).intersects(&Bounds::from(3..)));
+    assert!(bounds!(2,).intersects(&bounds!(1,)));
+    assert!(bounds!(2,).intersects(&bounds!(2,)));
+    assert!(bounds!(2,).intersects(&Bounds::from(3..)));
 
-    assert!(bounds!(1,~3).intersects(&Bounds::from(..)));
-    assert!(Bounds::<i32>::from(..).intersects(&Bounds::from(..)));
+    assert!(bounds!(1,~3).intersects(&bounds!(,)));
+    assert!(Bounds::<i32>::from(..).intersects(&bounds!(,)));
 }
 
 #[test]
@@ -110,10 +110,10 @@ fn test_add() {
     assert_eq!(bounds!(1,~3) + bounds!(2,~3), Bounds::from(3..6));
     assert_eq!(bounds!(1) + bounds!(1,~3), Bounds::from(2..4));
     assert_eq!(bounds!(1,~3) + bounds!(1), Bounds::from(2..4));
-    assert_eq!(bounds!(1,~3) + Bounds::from(..), Bounds::from(..));
-    assert_eq!(bounds!(1,~3) + bounds!(1,), Bounds::from(2..));
+    assert_eq!(bounds!(1,~3) + bounds!(,), bounds!(,));
+    assert_eq!(bounds!(1,~3) + bounds!(1,), bounds!(2,));
     assert_eq!(bounds!(1,~3) + Bounds::from(..3), Bounds::from(..6));
-    assert_eq!(Bounds::from(..) + bounds!(1,~3), Bounds::from(..));
+    assert_eq!(bounds!(,) + bounds!(1,~3), bounds!(,));
 }
 
 #[test]
@@ -121,7 +121,7 @@ fn test_sub() {
     assert_eq!(bounds!(1,~3) - bounds!(2,~3), bounds!(~-2, ~1));
     assert_eq!(bounds!(1) - bounds!(1,~3), bounds!(~-2, 0));
     assert_eq!(bounds!(1,~3) - bounds!(1), bounds!(0,~2));
-    assert_eq!(bounds!(1,~3) - Bounds::from(..), Bounds::from(..));
+    assert_eq!(bounds!(1,~3) - bounds!(,), bounds!(,));
     assert_eq!(bounds!(1,~3) - bounds!(1,), bounds!(,~2));
     assert_eq!(bounds!(1,~3) - Bounds::from(..3), bounds!(~-2,));
 }
@@ -129,33 +129,33 @@ fn test_sub() {
 #[test]
 fn test_mul() {
     assert_eq!(bounds!(1) * bounds!(1,~3), bounds!(1,~3));
-    assert_eq!(bounds!(1) * Bounds::from(2..), Bounds::from(2..));
+    assert_eq!(bounds!(1) * bounds!(2,), bounds!(2,));
     assert_eq!(bounds!(1) * bounds!(,~2), bounds!(,~2));
     assert_eq!(Bounds::Exact(-1) * bounds!(1,~3), bounds!(~-3,-1));
-    assert_eq!(Bounds::Exact(-1) * Bounds::from(2..), bounds!(,-2));
+    assert_eq!(Bounds::Exact(-1) * bounds!(2,), bounds!(,-2));
     assert_eq!(Bounds::Exact(-1) * bounds!(,~2), bounds!(~-2,));
     assert_eq!(bounds!(0) * bounds!(2,~3), bounds!(0));
-    assert_eq!(bounds!(0) * Bounds::from(..), bounds!(0));
-    assert_eq!(bounds!(0) * Bounds::from(2..), bounds!(0));
+    assert_eq!(bounds!(0) * bounds!(,), bounds!(0));
+    assert_eq!(bounds!(0) * bounds!(2,), bounds!(0));
     assert_eq!(bounds!(0) * Bounds::from(..3), bounds!(0));
 
     assert_eq!(Bounds::<i32>::Range(None, None) * bounds!(,), bounds!(,));
     assert_eq!(bounds!(,) * Bounds::from(1..2), bounds!(,));
-    assert_eq!(Bounds::from(1..2) * Bounds::from(..), Bounds::from(..));
+    assert_eq!(Bounds::from(1..2) * bounds!(,), bounds!(,));
     assert_eq!(Bounds::Exact(-1) * bounds!(1,), bounds!(,-1));
     assert_eq!(bounds!(1,~3) * bounds!(2,~3), Bounds::from(2..9));
     assert_eq!(bounds!(1,~3) * bounds!(1), bounds!(1,~3));
-    assert_eq!(bounds!(1,~3) * Bounds::from(..), Bounds::from(..));
-    assert_eq!(Bounds::from(..) * bounds!(1,~3), Bounds::from(..));
+    assert_eq!(bounds!(1,~3) * bounds!(,), bounds!(,));
+    assert_eq!(bounds!(,) * bounds!(1,~3), bounds!(,));
     assert_eq!(bounds!(1,~3) * bounds!(1,), bounds!(1,));
     assert_eq!(bounds!(1,) * bounds!(1,~3), bounds!(1,));
     assert_eq!(bounds!(1,~3) * Bounds::from(..3), Bounds::from(..9));
     assert_eq!(bounds!(1,~3) * bounds!(0), bounds!(0));
     assert_eq!(bounds!(1,) * bounds!(1), bounds!(1,));
-    assert_eq!(Bounds::from(-1..1) * bounds!(1,), Bounds::from(..));
-    assert_eq!(Bounds::from(..1) * bounds!(1,), Bounds::from(..));
-    assert_eq!(Bounds::from(-1..) * bounds!(1,), Bounds::from(..));
-    assert_eq!(Bounds::from(-1..1) * Bounds::from(..), Bounds::from(..));
+    assert_eq!(Bounds::from(-1..1) * bounds!(1,), bounds!(,));
+    assert_eq!(Bounds::from(..1) * bounds!(1,), bounds!(,));
+    assert_eq!(Bounds::from(-1..) * bounds!(1,), bounds!(,));
+    assert_eq!(Bounds::from(-1..1) * bounds!(,), bounds!(,));
 }
 
 #[test]
@@ -172,39 +172,41 @@ fn test_div() {
     assert_eq!(bounds!(-2,~6) / bounds!(-2), Some(bounds!(~-3,1)));
     assert_eq!(bounds!(-6,~-2) / bounds!(-2), Some(bounds!(~1, 3)));
     assert_eq!(bounds!(2,~6) / bounds!(0), None);
-    assert_eq!(Bounds::from(2..) / bounds!(2), Some(bounds!(1,)));
-    assert_eq!(Bounds::from(2..) / bounds!(-2), Some(bounds!(,-1)));
-    assert_eq!(Bounds::from(-2..) / bounds!(2), Some(Bounds::from(-1..)));
-    assert_eq!(Bounds::from(-2..) / bounds!(-2), Some(bounds!(,1)));
+    assert_eq!(bounds!(2,) / bounds!(2), Some(bounds!(1,)));
+    assert_eq!(bounds!(2,) / bounds!(-2), Some(bounds!(,-1)));
+    assert_eq!(bounds!(-2,) / bounds!(2), Some(Bounds::from(-1..)));
+    assert_eq!(bounds!(-2,) / bounds!(-2), Some(bounds!(,1)));
     assert_eq!(bounds!(,~2) / bounds!(2), Some(Bounds::from(..1)));
     assert_eq!(bounds!(,~2) / bounds!(-2), Some(bounds!(~-1,)));
     assert_eq!(bounds!(,~-2) / bounds!(2), Some(Bounds::from(..-1)));
     assert_eq!(bounds!(,~-2) / bounds!(-2), Some(bounds!(~1,)));
 
-    assert_eq!(bounds!(2) / Bounds::from(..), None);
+    assert_eq!(bounds!(2) / bounds!(,), None);
     assert_eq!(bounds!(0) / Bounds::from(1..2), Some(bounds!(0)));
     assert_eq!(bounds!(6) / bounds!(2,~3), Some(bounds!(~2,3)));
     assert_eq!(bounds!(-6) / bounds!(2,~3), Some(Bounds::from(-3..-2)));
     assert_eq!(bounds!(6) / Bounds::from(-3..-2), Some(bounds!(~-3,-2)));
     assert_eq!(bounds!(-6) / Bounds::from(-3..-2), Some(bounds!(2,~3)));
-    assert_eq!(bounds!(6) / Bounds::from(2..), Some(bounds!(,3)));
-    assert_eq!(bounds!(6) / Bounds::from(-2..), None);
+
+    assert_eq!(bounds!(6) / bounds!(2,), Some(bounds!(~0,3)));
+    assert_eq!(bounds!(-6) / bounds!(2,), Some(bounds!(-3,~0)));
+    assert_eq!(bounds!(6) / bounds!(,-2), Some(bounds!(-3,~0)));
+    assert_eq!(bounds!(-6) / bounds!(,-2), Some(bounds!(~0,3)));
+
+    assert_eq!(bounds!(6) / bounds!(-2,), None);
     assert_eq!(bounds!(6) / bounds!(,~2), None);
-    assert_eq!(bounds!(6) / bounds!(,~-2), Some(bounds!(~-3,)));
 
-    assert_eq!(bounds!(-6) / Bounds::from(2..), Some(Bounds::from(-3..)));
-    assert_eq!(bounds!(-6) / Bounds::from(-2..), None);
+    assert_eq!(bounds!(-6) / bounds!(-2,), None);
     assert_eq!(bounds!(-6) / bounds!(,~2), None);
-    assert_eq!(bounds!(-6) / bounds!(,~-2), Some(Bounds::from(..3)));
 
-    assert_eq!(bounds!(2) / bounds!(~0,1), Some(Bounds::from(2..)));
+    assert_eq!(bounds!(2) / bounds!(~0,1), Some(bounds!(2,)));
     assert_eq!(bounds!(-2) / bounds!(~0,1), Some(bounds!(,-2)));
     assert_eq!(bounds!(2) / bounds!(~0,), Some(bounds!(~0,)));
-    assert_eq!(bounds!(-2) / bounds!(~0,), Some(Bounds::from(..0)));
+    assert_eq!(bounds!(-2) / bounds!(~0,), Some(bounds!(,~0)));
     assert_eq!(bounds!(0) / bounds!(~0,), Some(bounds!(0)));
-    assert_eq!(bounds!(2) / Bounds::from(-1..0), Some(bounds!(,-2)));
-    assert_eq!(bounds!(-2) / Bounds::from(-1..0), Some(Bounds::from(2..)));
-    assert_eq!(bounds!(2) / Bounds::from(..0), Some(Bounds::from(..0)));
+    assert_eq!(bounds!(2) / bounds!(-1,~0), Some(bounds!(,-2)));
+    assert_eq!(bounds!(-2) / bounds!(-1,~0), Some(bounds!(2,)));
+    assert_eq!(bounds!(2) / bounds!(,~0), Some(bounds!(,~0)));
     assert_eq!(bounds!(-2) / bounds!(,~0), Some(bounds!(~0,)));
 
     assert_eq!(bounds!(1, 2) / bounds!(-1, 1), None);
@@ -217,4 +219,40 @@ fn test_div() {
     assert_eq!(bounds!(~2, 6) / bounds!(~0, 2), Some(bounds!(~1,)));
     assert_eq!(bounds!(2, ~6) / bounds!(~0, 2), Some(bounds!(1,)));
     assert_eq!(bounds!(~2, ~6) / bounds!(~0, 2), Some(bounds!(~1,)));
+
+    assert_eq!(bounds!(6, 12) / bounds!(2, 3), Some(bounds!(2, 6)));
+    assert_eq!(bounds!(-6, 12) / bounds!(2, 3), Some(bounds!(-3, 6)));
+    assert_eq!(bounds!(-12, -6) / bounds!(2, 3), Some(bounds!(-6, -2)));
+
+    assert_eq!(bounds!(~6,12) / bounds!(2, 3), Some(bounds!(~2,6)));
+    assert_eq!(bounds!(~-6,12) / bounds!(2, 3), Some(bounds!(~-3, 6)));
+    assert_eq!(bounds!(-12,~-6) / bounds!(2, 3), Some(bounds!(-6, ~-2)));
+
+    assert_eq!(bounds!(6, 12) / bounds!(-2, 3), None);
+    assert_eq!(bounds!(6, 12) / bounds!(-3, -2), Some(bounds!(-6, -2)));
+
+    assert_eq!(bounds!(6, 12) / bounds!(~2, 3), Some(bounds!(2, ~6)));
+    assert_eq!(bounds!(-6, 12) / bounds!(2, ~3), Some(bounds!(-3, 6)));
+
+    assert_eq!(bounds!(6, 12) / bounds!(, 3), None);
+    assert_eq!(bounds!(6, 12) / bounds!(, -3), Some(bounds!(-4,~0)));
+
+    assert_eq!(bounds!(6, 12) / bounds!(2,), Some(bounds!(~0,6)));
+    assert_eq!(bounds!(6, 12) / bounds!(,-2), Some(bounds!(-6, ~0)));
+
+    assert_eq!(bounds!(6, 12) / bounds!(2, 3), Some(bounds!(2, 6)));
+    assert_eq!(bounds!(6) / bounds!(2, 3), Some(bounds!(2, 3)));
+    assert_eq!(bounds!(12) / bounds!(2, 3), Some(bounds!(4, 6)));
+    assert_eq!(bounds!(,) / bounds!(-1, 1), None);
+
+    assert_eq!(bounds!(,) / bounds!(2, 3), Some(bounds!(,)));
+    assert_eq!(bounds!(, 12) / bounds!(2, 3), Some(bounds!(, 6)));
+    assert_eq!(bounds!(6,) / bounds!(2, 3), Some(bounds!(2,)));
+    assert_eq!(bounds!(, -12) / bounds!(2, 3), Some(bounds!(, -4)));
+    assert_eq!(bounds!(-6,) / bounds!(2, 3), Some(bounds!(-3,)));
+
+    assert_eq!(bounds!(, 12) / bounds!(-3, -2), Some(bounds!(-6,)));
+    assert_eq!(bounds!(6,) / bounds!(-3, -2), Some(bounds!(,-2)));
+    assert_eq!(bounds!(, -12) / bounds!(-3, -2), Some(bounds!(4,)));
+    assert_eq!(bounds!(-6,) / bounds!(-3, -2), Some(bounds!(,3)));
 }

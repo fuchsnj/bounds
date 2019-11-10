@@ -1,3 +1,4 @@
+use crate::bounds;
 use bound::Bound;
 use bound::BoundType::*;
 use comparison::Comparison;
@@ -204,33 +205,57 @@ impl<T: Div<T, Output = T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> 
                 }
             }
             (Bounds::Range(a, b), Bounds::Range(x, y)) => {
-                if let (Some(a), Some(b)) = (a, b) {
-                    let a_bound_type = a.bound_type;
-                    let b_bound_type = b.bound_type;
-                    let mut left = (Bounds::Exact(a.value) / Bounds::Range(x.clone(), y.clone()))
-                        .map(|c| {
-                            if a_bound_type == BoundType::Exclusive {
-                                c.to_exclusive()
-                            } else {
-                                c
-                            }
-                        });
-                    let right =
-                        (Bounds::Exact(b.value) / Bounds::Range(x.clone(), y.clone())).map(|c| {
-                            if b_bound_type == BoundType::Exclusive {
-                                c.to_exclusive()
-                            } else {
-                                c
-                            }
-                        });;
-                    if let (Some(left), Some(right)) = (left, right) {
-                        return Some(left.merge(right));
-                    } else {
-                        return None;
-                    }
+                debug_assert_bounds_order(&a, &b);
+                debug_assert_bounds_order(&x, &y);
+                let xy_sign_bounds = SignBounds::from_bounds(&x, &y);
+                if xy_sign_bounds.zero {
+                    return None;
                 }
-                //TODO: implement
-                unimplemented!()
+
+                let left = a.map(|a| {
+                    let a_bound_type = a.bound_type;
+                    (Bounds::Exact(a.value) / Bounds::Range(x.clone(), y.clone())).map(|c| {
+                        if a_bound_type == BoundType::Exclusive {
+                            c.to_exclusive()
+                        } else {
+                            c
+                        }
+                    })
+                });
+                let right = b.map(|b| {
+                    let b_bound_type = b.bound_type;
+                    (Bounds::Exact(b.value) / Bounds::Range(x.clone(), y.clone())).map(|c| {
+                        if b_bound_type == BoundType::Exclusive {
+                            c.to_exclusive()
+                        } else {
+                            c
+                        }
+                    })
+                });
+                match (left, right) {
+                    (Some(left), Some(right)) => {
+                        if let (Some(left), Some(right)) = (left, right) {
+                            Some(left.merge(right))
+                        } else {
+                            None
+                        }
+                    }
+                    (Some(left), None) => {
+                        if xy_sign_bounds.above_zero {
+                            left.map(|x| x.remove_upper_bound())
+                        } else {
+                            left.map(|x| x.remove_lower_bound())
+                        }
+                    }
+                    (None, Some(right)) => {
+                        if xy_sign_bounds.above_zero {
+                            right.map(|x| x.remove_lower_bound())
+                        } else {
+                            right.map(|x| x.remove_upper_bound())
+                        }
+                    }
+                    (None, None) => Some(bounds!(,)),
+                }
             }
             (Bounds::Exact(a), Bounds::Range(x, y)) => {
                 if SignBounds::from_bounds(&x, &y).zero {
@@ -264,12 +289,14 @@ impl<T: Div<T, Output = T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> 
                     });
                 }
                 let positive = a >= T::zero();
-                let bound_1 = opt_func(Some(Bound::inclusive(a.clone())), x);
-                let bound_2 = opt_func(Some(Bound::inclusive(a)), y);
+                let bound_1 = opt_func(Some(Bound::inclusive(a.clone())), x)
+                    .unwrap_or_else(|| Bound::exclusive(T::zero()));
+                let bound_2 = opt_func(Some(Bound::inclusive(a)), y)
+                    .unwrap_or_else(|| Bound::exclusive(T::zero()));
                 Some(if positive {
-                    Bounds::Range(bound_2, bound_1)
+                    Bounds::Range(Some(bound_2), Some(bound_1))
                 } else {
-                    Bounds::Range(bound_1, bound_2)
+                    Bounds::Range(Some(bound_1), Some(bound_2))
                 })
             }
             (Bounds::Range(x, y), Bounds::Exact(a)) => {
@@ -304,6 +331,18 @@ impl<T> Bounds<T> {
             Bounds::Range(a, b) => {
                 Bounds::Range(a.map(|x| x.to_exclusive()), b.map(|x| x.to_exclusive()))
             }
+        }
+    }
+    pub fn remove_upper_bound(self) -> Bounds<T> {
+        match self {
+            Bounds::Exact(x) => bounds!(x,),
+            Bounds::Range(a, b) => Bounds::Range(a, None),
+        }
+    }
+    pub fn remove_lower_bound(self) -> Bounds<T> {
+        match self {
+            Bounds::Exact(x) => bounds!(,x),
+            Bounds::Range(a, b) => Bounds::Range(None, b),
         }
     }
 }
@@ -464,7 +503,7 @@ impl<T: Eq + Ord> Bounds<T> {
 fn debug_assert_bounds_order<T: PartialOrd>(x: &Option<Bound<T>>, y: &Option<Bound<T>>) {
     debug_assert!(
         match (x, y) {
-            (&Some(ref x), &Some(ref y)) => x.value <= y.value,
+            (Some(ref x), Some(ref y)) => x.value <= y.value,
             _ => true,
         },
         "invalid range: start must be less than end"

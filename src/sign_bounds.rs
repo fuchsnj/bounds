@@ -20,13 +20,6 @@ impl SignBounds {
             .unwrap_or(SignBounds::above_zero());
         left.merge(&right)
     }
-    pub fn from_value<T: Zero + Ord>(value: &T) -> SignBounds {
-        match value.cmp(&T::zero()) {
-            Ordering::Equal => SignBounds::zero(),
-            Ordering::Greater => SignBounds::above_zero(),
-            Ordering::Less => SignBounds::below_zero(),
-        }
-    }
     pub fn from_bound<T: Zero + Ord>(bound: &Bound<T>) -> SignBounds {
         match bound.value.cmp(&T::zero()) {
             Ordering::Equal => {
