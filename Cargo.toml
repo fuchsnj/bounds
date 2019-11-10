@@ -10,3 +10,4 @@ A library to interact with bounded and unbounded ranges
 """
 
 [dependencies]
+num = "0.2.0"
