@@ -1,9 +1,10 @@
-use crate::bounds;
 use crate::bound::Bound;
 use crate::bound::BoundType::*;
+use crate::bounds;
 use crate::comparison::Comparison;
-use num::Zero;
 use crate::sign_bounds::SignBounds;
+use crate::BoundType;
+use num::Zero;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Debug;
@@ -15,7 +16,6 @@ use std::ops::RangeFull;
 use std::ops::RangeTo;
 use std::ops::Sub;
 use std::ops::{Div, Range};
-use crate::BoundType;
 
 #[derive(Eq, PartialEq, Clone)]
 pub enum Bounds<T> {
