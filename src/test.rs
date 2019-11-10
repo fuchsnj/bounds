@@ -1,7 +1,7 @@
 use crate::bounds;
 
-use bounds::Bounds;
-use comparison::Comparison;
+use crate::bounds::Bounds;
+use crate::comparison::Comparison;
 
 #[test]
 fn test_intersection() {
