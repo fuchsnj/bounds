@@ -1,14 +1,11 @@
-extern crate core;
-extern crate num;
-
 mod bound;
 mod bounds;
 mod comparison;
 pub(crate) mod sign_bounds;
 
-pub use bound::{Bound, BoundType};
-pub use bounds::Bounds;
-pub use comparison::Comparison;
+pub use crate::bound::{Bound, BoundType};
+pub use crate::bounds::Bounds;
+pub use crate::comparison::Comparison;
 
 #[cfg(test)]
 mod test;

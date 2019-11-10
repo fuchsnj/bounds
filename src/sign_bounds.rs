@@ -1,4 +1,4 @@
-use bound::{Bound, BoundType};
+use crate::bound::{Bound, BoundType};
 use num::Zero;
 use std::cmp::Ordering;
 
