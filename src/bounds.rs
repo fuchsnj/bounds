@@ -4,6 +4,7 @@ use comparison::Comparison;
 use num::Zero;
 use sign_bounds::SignBounds;
 use std::cmp::Ordering;
+use std::fmt;
 use std::fmt::{Debug, Display};
 use std::ops::Add;
 use std::ops::Mul;
@@ -13,7 +14,6 @@ use std::ops::RangeFull;
 use std::ops::RangeTo;
 use std::ops::Sub;
 use std::ops::{Div, Range};
-use std::fmt;
 use BoundType;
 
 #[derive(Eq, PartialEq, Clone)]
@@ -30,16 +30,16 @@ impl<T: Debug> fmt::Debug for Bounds<T> {
                 let left = match a {
                     Some(a) => match a.bound_type {
                         BoundType::Inclusive => format!("[{:?}", a.value),
-                        BoundType::Exclusive => format!("({:?}", a.value)
+                        BoundType::Exclusive => format!("({:?}", a.value),
                     },
-                    None => "(-∞".to_owned()
+                    None => "(-∞".to_owned(),
                 };
                 let right = match b {
                     Some(b) => match b.bound_type {
                         BoundType::Inclusive => format!("{:?}]", b.value),
-                        BoundType::Exclusive => format!("{:?})", b.value)
+                        BoundType::Exclusive => format!("{:?})", b.value),
                     },
-                    None => "∞)".to_owned()
+                    None => "∞)".to_owned(),
                 };
                 write!(f, "{}, {}", left, right)
             }
@@ -75,7 +75,7 @@ impl<T> From<RangeFull> for Bounds<T> {
     }
 }
 
-impl<T: Neg<Output=T>> Neg for Bounds<T> {
+impl<T: Neg<Output = T>> Neg for Bounds<T> {
     type Output = Bounds<T>;
 
     fn neg(self) -> Self::Output {
@@ -93,7 +93,7 @@ fn combine_opts<T, F: FnOnce(T, T) -> T>(a: Option<T>, b: Option<T>, func: F) ->
     }
 }
 
-impl<T: Add<T, Output=T> + Clone + Eq + Ord> Add for Bounds<T> {
+impl<T: Add<T, Output = T> + Clone + Eq + Ord> Add for Bounds<T> {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
@@ -115,7 +115,7 @@ impl<T: Add<T, Output=T> + Clone + Eq + Ord> Add for Bounds<T> {
     }
 }
 
-impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
+impl<T: Mul<T, Output = T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
     type Output = Self;
 
     fn mul(self, other: Self) -> Self::Output {
@@ -153,19 +153,19 @@ impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
                     combine_opts(b.clone(), x.clone(), |a, b| a * b),
                     combine_opts(b.clone(), y.clone(), |a, b| a * b),
                 ]
-                    .into_iter()
-                    .for_each(|bound| {
-                        if let Some(bound) = bound {
-                            lower_bound = Some(match lower_bound.take() {
-                                Some(x) => Bound::lower_bound_min(bound.clone(), x),
-                                None => bound.clone(),
-                            });
-                            upper_bound = Some(match upper_bound.take() {
-                                Some(x) => Bound::upper_bound_max(bound, x),
-                                None => bound,
-                            });
-                        }
-                    });
+                .into_iter()
+                .for_each(|bound| {
+                    if let Some(bound) = bound {
+                        lower_bound = Some(match lower_bound.take() {
+                            Some(x) => Bound::lower_bound_min(bound.clone(), x),
+                            None => bound.clone(),
+                        });
+                        upper_bound = Some(match upper_bound.take() {
+                            Some(x) => Bound::upper_bound_max(bound, x),
+                            None => bound,
+                        });
+                    }
+                });
                 Bounds::Range(
                     if negative_infinity { None } else { lower_bound },
                     if positive_infinity { None } else { upper_bound },
@@ -188,7 +188,7 @@ impl<T: Mul<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Mul for Bounds<T> {
     }
 }
 
-impl<T: Div<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
+impl<T: Div<T, Output = T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
     type Output = Option<Self>;
 
     fn div(self, other: Self) -> Self::Output {
@@ -208,9 +208,21 @@ impl<T: Div<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
                     let a_bound_type = a.bound_type;
                     let b_bound_type = b.bound_type;
                     let mut left = (Bounds::Exact(a.value) / Bounds::Range(x.clone(), y.clone()))
-                        .map(|c| if a_bound_type == BoundType::Exclusive { c.to_exclusive() } else { c });
-                    let right = (Bounds::Exact(b.value) / Bounds::Range(x.clone(), y.clone()))
-                        .map(|c| if b_bound_type == BoundType::Exclusive { c.to_exclusive() } else { c });;
+                        .map(|c| {
+                            if a_bound_type == BoundType::Exclusive {
+                                c.to_exclusive()
+                            } else {
+                                c
+                            }
+                        });
+                    let right =
+                        (Bounds::Exact(b.value) / Bounds::Range(x.clone(), y.clone())).map(|c| {
+                            if b_bound_type == BoundType::Exclusive {
+                                c.to_exclusive()
+                            } else {
+                                c
+                            }
+                        });;
                     if let (Some(left), Some(right)) = (left, right) {
                         return Some(left.merge(right));
                     } else {
@@ -277,7 +289,7 @@ impl<T: Div<T, Output=T> + Clone + Eq + Ord + Zero + Debug> Div for Bounds<T> {
     }
 }
 
-impl<T: Neg<Output=T> + Add<T, Output=T> + Clone + Eq + Ord> Sub for Bounds<T> {
+impl<T: Neg<Output = T> + Add<T, Output = T> + Clone + Eq + Ord> Sub for Bounds<T> {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
@@ -296,7 +308,7 @@ impl<T> Bounds<T> {
     }
 }
 
-impl<T: Sub<Output=T> + Clone + Zero> Bounds<T> {
+impl<T: Sub<Output = T> + Clone + Zero> Bounds<T> {
     pub fn size(&self) -> Option<T> {
         match *self {
             Bounds::Exact(_) => Some(T::zero()),
