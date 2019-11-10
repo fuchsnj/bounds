@@ -1,5 +1,5 @@
 use crate::bounds;
-use bound::Bound;
+
 use bounds::Bounds;
 use comparison::Comparison;
 

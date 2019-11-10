@@ -6,7 +6,7 @@ use num::Zero;
 use sign_bounds::SignBounds;
 use std::cmp::Ordering;
 use std::fmt;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::ops::Add;
 use std::ops::Mul;
 use std::ops::Neg;
@@ -336,13 +336,13 @@ impl<T> Bounds<T> {
     pub fn remove_upper_bound(self) -> Bounds<T> {
         match self {
             Bounds::Exact(x) => bounds!(x,),
-            Bounds::Range(a, b) => Bounds::Range(a, None),
+            Bounds::Range(a, _b) => Bounds::Range(a, None),
         }
     }
     pub fn remove_lower_bound(self) -> Bounds<T> {
         match self {
             Bounds::Exact(x) => bounds!(,x),
-            Bounds::Range(a, b) => Bounds::Range(None, b),
+            Bounds::Range(_a, b) => Bounds::Range(None, b),
         }
     }
 }
@@ -374,14 +374,14 @@ impl<T: Eq + Ord> Bounds<T> {
                 debug_assert_bounds_order(&x, &y);
                 let high = match (b, y) {
                     (None, None) => None,
-                    (Some(val), None) => None,
+                    (Some(_val), None) => None,
                     (None, Some(val)) => Some(val),
                     (Some(b), Some(y)) => Some(Bound::upper_bound_max(b, y)),
                 };
                 let low = match (a, x) {
                     (None, None) => None,
                     (Some(val), None) => Some(val),
-                    (None, Some(val)) => None,
+                    (None, Some(_val)) => None,
                     (Some(a), Some(x)) => Some(Bound::lower_bound_min(a, x)),
                 };
                 Bounds::Range(low, high)

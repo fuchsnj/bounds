@@ -5,7 +5,7 @@ pub enum BoundType {
 }
 
 use std::cmp::Ordering;
-use std::fmt;
+
 use std::ops::Add;
 use std::ops::Mul;
 use std::ops::Neg;
