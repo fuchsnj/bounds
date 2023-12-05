@@ -11,7 +11,8 @@ It also supports zero-sized bounds (an exact value).
 You can use the four basic arithmetic operations on these ranges. (add, subtract, multiply, divide)
 
 ## Implementation Details
-This library adheres to "real" math, and does not respect integer math, or floating point precision issues.
+This library adheres to "real" math, and does not respect integer math (overflow / underflow),
+or floating point precision issues.
 It was designed to be used with `BigRational`, but is generic so it can be used with others.
 If this is used with types that can overflow, round, accumulate errors, etc. no guarantees are
 made.
@@ -28,10 +29,10 @@ Rust's built in bounds don't allow the lower bound to be exclusive, so a macro i
 The prefix `~` is used to make a bound exclusive. It is inclusive by default
 
 ```rust
-bound!(,); // unbounded
-bound!(~0, 3); // > 0 and <= 3
-bound!(3,); // >= 3
-bound!(-3); // exactly -3
+bounds!(,); // unbounded
+bounds!(~0, 3); // > 0 and <= 3
+bounds!(3,); // >= 3
+bounds!(-3); // exactly -3
 
 ```
 

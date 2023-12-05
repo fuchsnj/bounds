@@ -8,7 +8,7 @@ use num::Zero;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Debug;
-use std::ops::Add;
+use std::ops::{Add, RangeInclusive};
 use std::ops::Mul;
 use std::ops::Neg;
 use std::ops::RangeFrom;
@@ -52,6 +52,14 @@ impl<T> From<Range<T>> for Bounds<T> {
     fn from(range: Range<T>) -> Self {
         let start = Bound::inclusive(range.start);
         let end = Bound::exclusive(range.end);
+        Bounds::Range(Some(start), Some(end))
+    }
+}
+
+impl<T: Clone> From<RangeInclusive<T>> for Bounds<T> {
+    fn from(range: RangeInclusive<T>) -> Self {
+        let start = Bound::inclusive(range.start().clone());
+        let end = Bound::inclusive(range.end().clone());
         Bounds::Range(Some(start), Some(end))
     }
 }
