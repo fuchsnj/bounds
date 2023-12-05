@@ -11,4 +11,4 @@ A library to interact with bounded and unbounded ranges
 edition = "2021"
 
 [dependencies]
-num = "0.2.0"
+num = "0.4.1"
